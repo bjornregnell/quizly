@@ -6,7 +6,7 @@ import org.eclipse.jetty.server.{Handler, Request, Response, Server, ServerConne
 import org.eclipse.jetty.util.Callback
 
 object QuizServer:
-  private val defaultPort = 8080
+  private val defaultPort = 8095
 
   def main(args: Array[String]): Unit =
     val port = sys.env.get("PORT").flatMap(_.toIntOption).getOrElse(defaultPort)
