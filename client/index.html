@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quizly</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #f7f7f4;
+        color: #1f2933;
+      }
+
+      .app {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 32px 20px;
+      }
+
+      .editor,
+      .quiz-row {
+        display: grid;
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-weight: 650;
+      }
+
+      input[type="text"] {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #b8c0cc;
+        border-radius: 6px;
+        font: inherit;
+      }
+
+      .radio-group,
+      .summary-counts {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .radio-option {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 500;
+      }
+
+      .actions,
+      .row-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .question-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .question-row {
+        padding: 12px;
+        border: 1px solid #d4dae3;
+        border-radius: 8px;
+        background: white;
+      }
+
+      .question-text {
+        font-weight: 650;
+      }
+
+      button {
+        padding: 8px 12px;
+        border: 1px solid #2f6f73;
+        border-radius: 6px;
+        background: #2f6f73;
+        color: white;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button[type="button"] {
+        background: white;
+        color: #2f6f73;
+      }
+
+      .message {
+        min-height: 1.5em;
+      }
+
+      .summary {
+        margin: 24px 0;
+        padding: 12px 0;
+        border-top: 1px solid #d4dae3;
+        border-bottom: 1px solid #d4dae3;
+      }
+
+      .summary-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .summary-row {
+        display: grid;
+        gap: 6px;
+      }
+
+      .quiz-list {
+        display: grid;
+        gap: 10px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .quiz-row {
+        padding: 12px;
+        border: 1px solid #d4dae3;
+        border-radius: 8px;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app"></main>
+    <script defer src="/assets/main.js"></script>
+  </body>
+</html>
