@@ -23,12 +23,21 @@ object QuizServer:
 
 object QuizHandler extends Handler.Abstract.NonBlocking:
   override def handle(request: Request, response: Response, callback: Callback): Boolean =
-    if Request.getPathInContext(request) == "/quiz" then
-      response.setStatus(HttpStatus.OK_200)
-      response.getHeaders.put(HttpHeader.CONTENT_TYPE, "text/html; charset=utf-8")
-      Content.Sink.write(response, true, html.quizMainPage, callback)
-      true
-    else
-      response.setStatus(HttpStatus.NOT_FOUND_404)
-      Content.Sink.write(response, true, "not found", callback)
-      true
+    Request.getPathInContext(request) match
+      case "/quiz" =>
+        val params = Request.extractQueryParameters(request)
+        val nameOpt = Option(params.getValue("name"))
+        val warEnd2026Opt =
+          Option(params.get("warEnd2026")).map(_ => params.getValuesOrEmpty("warEnd2026").contains("true"))
+        writeHtml(response, callback, html.quizPage(nameOpt, warEnd2026Opt))
+        true
+
+      case _ =>
+        response.setStatus(HttpStatus.NOT_FOUND_404)
+        Content.Sink.write(response, true, "not found", callback)
+        true
+
+  private def writeHtml(response: Response, callback: Callback, body: String): Unit =
+    response.setStatus(HttpStatus.OK_200)
+    response.getHeaders.put(HttpHeader.CONTENT_TYPE, "text/html; charset=utf-8")
+    Content.Sink.write(response, true, body, callback)
