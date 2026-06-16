@@ -1,0 +1,4 @@
+interface:
+  display_name: "Quizly Verify"
+  short_description: "Build and verify the Quizly Scala multi-project"
+  default_prompt: "Use $quizly-verify to compile, build, and verify Quizly changes."

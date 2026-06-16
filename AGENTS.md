@@ -32,6 +32,7 @@ This repository is a minimal quiz web app built as a Scala multi-project. It has
 
 - Use sbt 1.x, currently `sbt.version=1.12.12`.
 - Always prefer `sbt --client` for commands in this repo.
+- Use the repo-scoped `$quizly-verify` Codex skill for compile, build, local runtime, deployment, and verification workflows when it is available.
 - Scala version is `3.9.0-RC1`.
 - Main dependency versions currently in `build.sbt`:
   - Jetty `12.1.10`
