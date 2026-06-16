@@ -1,5 +1,7 @@
 .bsp/
 .metals/
-.vscode/
+.vscode/*
+!.vscode/
+!.vscode/settings.json
 target/
 client/quizly/
