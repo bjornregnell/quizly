@@ -6,6 +6,7 @@ import upickle.default.*
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
@@ -93,10 +94,10 @@ object QuizServer:
 
 final class QuizHandler(staticDir: Path, debug: Boolean = false)
     extends Handler.Abstract:
-  private val users = ConcurrentHashMap[String, User]()
+  private val users = ConcurrentHashMap[User.Id, User]()
   val quizPath = "/api/quizzes"
   val configPath = "/api/config"
-  val quizByNamePrefix = s"$quizPath/"
+  val quizByIdPrefix = s"$quizPath/"
 
   override def handle(
       request: Request,
@@ -116,7 +117,7 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
           .values()
           .asScala
           .toVector
-          .sortBy(user => user.name.toLowerCase)
+          .sortBy(user => (user.name.toLowerCase, user.id))
         writeJson(response, callback, values)
         true
 
@@ -128,10 +129,10 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
         writeJson(response, callback, summarizeQuizzes())
         true
 
-      case ("GET", path) if path.startsWith(quizByNamePrefix) =>
-        val name = decodePathSegment(path.stripPrefix(quizByNamePrefix))
+      case ("GET", path) if path.startsWith(quizByIdPrefix) =>
+        val id = decodePathSegment(path.stripPrefix(quizByIdPrefix))
 
-        Option(users.get(name)) match
+        Option(users.get(id)) match
           case Some(user) =>
             writeJson(response, callback, user)
           case None =>
@@ -139,7 +140,7 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
               response,
               callback,
               HttpStatus.NOT_FOUND_404,
-              s"No user for '$name'"
+              s"No user for id '$id'"
             )
         true
 
@@ -148,7 +149,7 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
           case Success(user) =>
             normalize(user) match
               case Some(normalized) =>
-                users.put(normalized.name, normalized)
+                users.put(normalized.id, normalized)
                 writeJson(response, callback, normalized)
               case None =>
                 writeError(
@@ -168,26 +169,26 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
 
       case ("POST", "/api/quizzes/delete") =>
         val params = Request.extractQueryParameters(request)
-        val nameOpt =
-          Option(params.getValue("name")).map(_.trim).filter(_.nonEmpty)
+        val idOpt =
+          Option(params.getValue("id")).map(_.trim).filter(_.nonEmpty)
 
-        nameOpt match
-          case Some(name) =>
-            Option(users.remove(name)) match
+        idOpt match
+          case Some(id) =>
+            Option(users.remove(id)) match
               case Some(user) => writeJson(response, callback, user)
               case None       =>
                 writeError(
                   response,
                   callback,
                   HttpStatus.NOT_FOUND_404,
-                  s"No user for '$name'"
+                  s"No user for id '$id'"
                 )
           case None =>
             writeError(
               response,
               callback,
               HttpStatus.BAD_REQUEST_400,
-              "User name is required"
+              "User id is required"
             )
         true
 
@@ -211,10 +212,15 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
         true
 
   def normalize(user: User): Option[User] =
+    val id =
+      Option(user.id).map(_.trim).filter(_.nonEmpty).getOrElse(newUserId())
     val name = user.name.trim
     val answers = Quiz.normalizeAnswers(user.answers)
 
-    Option.when(name.nonEmpty)(user.copy(name = name, answers = answers))
+    Option.when(name.nonEmpty)(user.copy(id = id, name = name, answers = answers))
+
+  def newUserId(): User.Id =
+    UUID.randomUUID().toString
 
   def summarizeQuizzes(): QuizSummary =
     val emptyRows = Quiz.questionIds.map(QuizQuestionSummary.empty)

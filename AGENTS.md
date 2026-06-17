@@ -9,9 +9,10 @@ This repository is a minimal quiz web app built as a Scala multi-project. It has
 - The deployed bjornix URLs are:
   - SPA: `http://bjornix.cs.lth.se:8096/quizly`
   - API summary: `http://bjornix.cs.lth.se:8095/api/quizzes/summary`
-- The app asks for a user name and answers to two fixed propositions:
-  - `The war will end in 2026`
-  - `The current government will remain in power after the election`
+- The app asks for a user name and answers to three fixed propositions:
+  - `The war in Ukraine will end within the next year`
+  - `The current prime minister will remain in power after the next election`
+  - `A new nuclear power plant will be operational within the next 10 years`
 - Each answer is a radio choice: `true`, `false`, or `No answer yet`.
 - Answers are stored by fixed question id.
 - The SPA shows a per-question summary counting true, false, and no-answer-yet responses.
@@ -87,7 +88,9 @@ The shared model lives in `common/src/main/scala/quizly/common/Quiz.scala`.
 - `Quiz.Id` is an alias for `Int`.
 - `Quiz.Question` is an alias for `String`.
 - `Quiz.questions: Map[Quiz.Id, Quiz.Question]` maps question ids to propositions.
-- `User(name: String, answers: Map[Quiz.Id, Option[Boolean]])`
+- `User(id: User.Id, name: String, answers: Map[Quiz.Id, Option[Boolean]])`
+- `User.Id` is an alias for `String`.
+- `User.unsavedId` is the empty id sent by the SPA when the server should generate a UUID.
 - `None` means no answer has been given yet for that question id.
 - uPickle `ReadWriter` instances are generated in the companion objects.
 
@@ -108,11 +111,11 @@ The server entry point is `quizly.server.QuizServer`.
   - `GET /api/config` returns `ServerConfig(debug: Boolean)`.
   - `GET /api/quizzes` returns all user records.
   - `GET /api/quizzes/summary` returns per-question-id counts.
-  - `GET /api/quizzes/{name}` returns one user record.
+  - `GET /api/quizzes/{id}` returns one user record.
   - `POST /api/quizzes` creates or replaces one user record from a JSON `User`.
-  - `POST /api/quizzes/delete?name=...` deletes one user record.
-- The server uses `ConcurrentHashMap[String, User]`.
-- The internal key is the trimmed user name, so one name has one answer map for all fixed questions.
+  - `POST /api/quizzes/delete?id=...` deletes one user record.
+- The server uses `ConcurrentHashMap[User.Id, User]`.
+- The internal key is the user id. If a posted user has `User.unsavedId`, the server generates a UUID.
 - The tiny router handles `GET`, `POST`, and `OPTIONS`; `HEAD` is not implemented.
 - CORS is currently permissive with `Access-Control-Allow-Origin: *`.
 
@@ -124,6 +127,7 @@ The SPA entry point is `quizly.client.QuizClient`.
 - It computes the API base from the current browser scheme/host and hardcodes API port `8095`.
 - It stores UI state in Laminar `Var`s:
   - name
+  - current user id
   - answers by question id
   - stored users
   - summary

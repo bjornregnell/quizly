@@ -15,6 +15,8 @@ import org.eclipse.jetty.server.{Server, ServerConnector}
 class QuizServerSuite extends munit.FunSuite:
   val warQuestionId = 1
   val governmentQuestionId = 2
+  val adaId = "ada-id"
+  val graceId = "grace-id"
 
   val httpClient = HttpClient
     .newBuilder()
@@ -48,7 +50,8 @@ class QuizServerSuite extends munit.FunSuite:
 
   test("GET /api/quizzes returns stored users"):
     withRunningServer: base =>
-      val user = User("Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
+      val user =
+        User(adaId, "Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
       postJson(base, "/api/quizzes", write(user))
 
       val response = get(base, "/api/quizzes")
@@ -61,12 +64,12 @@ class QuizServerSuite extends munit.FunSuite:
       postJson(
         base,
         "/api/quizzes",
-        write(User("Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true))))
+        write(User(adaId, "Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true))))
       )
       postJson(
         base,
         "/api/quizzes",
-        write(User("Grace", Quiz.emptyAnswers + (governmentQuestionId -> Some(false))))
+        write(User(graceId, "Grace", Quiz.emptyAnswers + (governmentQuestionId -> Some(false))))
       )
 
       val response = get(base, "/api/quizzes/summary")
@@ -79,32 +82,60 @@ class QuizServerSuite extends munit.FunSuite:
       assertEquals(summary.questions.find(_.id == governmentQuestionId).map(_.falseAnswers), Some(1))
       assertEquals(summary.questions.find(_.id == governmentQuestionId).map(_.noAnswerYet), Some(1))
 
-  test("GET /api/quizzes/{name} returns the named user"):
+  test("GET /api/quizzes/{id} returns the identified user"):
     withRunningServer: base =>
-      val ada = User("Ada Lovelace", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
+      val ada =
+        User(adaId, "Ada Lovelace", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
       postJson(base, "/api/quizzes", write(ada))
-      postJson(base, "/api/quizzes", write(User("Grace Hopper", Quiz.emptyAnswers)))
+      postJson(base, "/api/quizzes", write(User(graceId, "Grace Hopper", Quiz.emptyAnswers)))
 
-      val response = get(base, s"/api/quizzes/${encode("Ada Lovelace")}")
+      val response = get(base, s"/api/quizzes/${encode(ada.id)}")
 
       assertOkJson(response)
       assertEquals(read[User](response.body()), ada)
 
-  test("POST /api/quizzes creates a user"):
+  test("POST /api/quizzes creates a user id when needed"):
     withRunningServer: base =>
-      val user = User("Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
+      val user =
+        User(User.unsavedId, "Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
 
       val response = postJson(base, "/api/quizzes", write(user))
 
       assertOkJson(response)
-      assertEquals(read[User](response.body()), user)
+      val saved = read[User](response.body())
+      assert(saved.id.nonEmpty)
+      assertEquals(saved.name, user.name)
+      assertEquals(saved.answers, user.answers)
+
+  test("POST /api/quizzes allows duplicate user names"):
+    withRunningServer: base =>
+      val first = read[User]:
+        postJson(
+          base,
+          "/api/quizzes",
+          write(User(User.unsavedId, "Ada", Quiz.emptyAnswers))
+        ).body()
+      val second = read[User]:
+        postJson(
+          base,
+          "/api/quizzes",
+          write(User(User.unsavedId, "Ada", Quiz.emptyAnswers))
+        ).body()
+
+      val response = get(base, "/api/quizzes")
+
+      assertOkJson(response)
+      assertEquals(read[Vector[User]](response.body()).map(_.id).toSet, Set(first.id, second.id))
+      assertEquals(first.name, second.name)
+      assertNotEquals(first.id, second.id)
 
   test("POST /api/quizzes/delete deletes a user"):
     withRunningServer: base =>
-      val user = User("Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
+      val user =
+        User(adaId, "Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
       postJson(base, "/api/quizzes", write(user))
 
-      val response = post(base, s"/api/quizzes/delete?name=${encode(user.name)}")
+      val response = post(base, s"/api/quizzes/delete?id=${encode(user.id)}")
 
       assertOkJson(response)
       assertEquals(read[User](response.body()), user)

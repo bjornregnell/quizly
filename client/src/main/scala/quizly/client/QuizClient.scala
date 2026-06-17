@@ -29,6 +29,7 @@ object QuizClient:
 
   private val nameVar = Var("")
   private val nameErrorVar = Var(Option.empty[String])
+  private val userIdVar = Var(User.unsavedId)
   private val answersVar = Var(Quiz.emptyAnswers)
   private val debugVar = Var(false)
   private val usersVar = Var(Vector.empty[User])
@@ -121,6 +122,7 @@ object QuizClient:
           s" - ${answerTexts.mkString(" - ")}"
         )
       ),
+      div(s"ID: ${user.id}"),
       div(
         cls := "row-actions",
         button(
@@ -195,6 +197,7 @@ object QuizClient:
       nameRuleMessage
 
   private def loadUser(user: User): Unit =
+    userIdVar.set(user.id)
     nameVar.set(user.name)
     nameErrorVar.set(None)
     answersVar.set(Quiz.normalizeAnswers(user.answers))
@@ -212,19 +215,22 @@ object QuizClient:
 
     if name.isEmpty then messageVar.set("Name is required")
     else
-      val user = User(name, Quiz.normalizeAnswers(answersVar.now()))
+      val user =
+        User(userIdVar.now(), name, Quiz.normalizeAnswers(answersVar.now()))
 
       postJson[User, User]("/api/quizzes", user).foreach: saved =>
+        userIdVar.set(saved.id)
         answersVar.set(Quiz.normalizeAnswers(saved.answers))
         refreshAll()
         messageVar.set(s"Saved answers for $name")
 
   private def deleteUser(user: User): Unit =
     val query =
-      s"name=${js.URIUtils.encodeURIComponent(user.name)}"
+      s"id=${js.URIUtils.encodeURIComponent(user.id)}"
 
     postEmpty(s"/api/quizzes/delete?$query").foreach: _ =>
-      if nameVar.now() == user.name then
+      if userIdVar.now() == user.id then
+        userIdVar.set(User.unsavedId)
         nameVar.set("")
         answersVar.set(Quiz.emptyAnswers)
       refreshAll()

@@ -2,7 +2,7 @@ package quizly.common
 
 import upickle.default.*
 
-case class User(name: String, answers: Map[Quiz.Id, Option[Boolean]])
+case class User(id: User.Id, name: String, answers: Map[Quiz.Id, Option[Boolean]])
 
 case class QuizQuestionSummary(
   id: Quiz.Id,
@@ -38,6 +38,9 @@ object Quiz:
     normalizeAnswers(Map.empty)
 
 object User:
+  type Id = String
+  val unsavedId: Id = ""
+
   given ReadWriter[User] = macroRW
 
 object QuizQuestionSummary:
