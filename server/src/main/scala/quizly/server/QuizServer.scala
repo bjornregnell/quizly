@@ -150,12 +150,12 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
             val normalized = normalize(user)
             users.put(normalized.id, normalized)
             writeJson(response, callback, normalized)
-          case Failure(error) =>
+          case Failure(_) =>
             writeError(
               response,
               callback,
               HttpStatus.BAD_REQUEST_400,
-              error.getMessage
+              "invalid request body"
             )
         true
 
