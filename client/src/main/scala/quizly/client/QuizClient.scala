@@ -153,12 +153,23 @@ object QuizClient:
       span(labelText)
     )
 
+  def majorityClass(summary: QuizQuestionSummary): String =
+    if summary.trueAnswers > summary.falseAnswers then "majority-true"
+    else if summary.falseAnswers > summary.trueAnswers then "majority-false"
+    else if summary.trueAnswers > 0 then "majority-tie"
+    else ""
+
   def summaryRow(summary: QuizQuestionSummary): HtmlElement =
     val question = Quiz.questions.getOrElse(summary.id, s"Question ${summary.id}")
 
     div(
       cls := "summary-row",
-      div(strong(question)),
+      div(
+        cls := List("summary-question", majorityClass(summary))
+          .filter(_.nonEmpty)
+          .mkString(" "),
+        strong(question)
+      ),
       div(
         cls := "summary-counts",
         span(s"True: ${summary.trueAnswers}"),
