@@ -24,12 +24,16 @@ object QuizClient:
 
     s"$scheme//$host:8095"
 
+  val pollIntervalMs = 3000
+  val autoSaveDebounceMs = 400
+
   private val userIdVar = Var(User.unsavedId)
   private val answersVar = Var(Quiz.emptyAnswers)
   private val debugVar = Var(false)
   private val usersVar = Var(Vector.empty[User])
   private val summaryVar = Var(QuizSummary.empty)
   private val messageVar = Var("Ready")
+  private val saveRequests = new EventBus[Unit]
 
   def main(args: Array[String]): Unit =
     renderOnDomContentLoaded(
@@ -41,6 +45,10 @@ object QuizClient:
   def mainView: HtmlElement =
     div(
       cls := "app",
+      EventStream.periodic(pollIntervalMs) --> Observer(_ => refreshAll()),
+      saveRequests.events.debounce(autoSaveDebounceMs) --> Observer(_ =>
+        saveAnswers()
+      ),
       h1(
         child.text <-- debugVar.signal.map:
           case true  => "Quizly Debugger"
@@ -48,7 +56,7 @@ object QuizClient:
       ),
       form(
         cls := "editor",
-        onSubmit.preventDefault.mapTo(()) --> (_ => saveAnswers()),
+        onSubmit.preventDefault.mapTo(()) --> (_ => ()),
         div(
           cls := "question-list",
           Quiz.questionRows.map: row =>
@@ -57,18 +65,9 @@ object QuizClient:
         div(
           cls := "actions",
           button(
-            "Save answers",
-            typ := "submit"
-          ),
-          button(
             "Clear answers",
             typ := "button",
-            onClick.mapTo(()) --> (_ => answersVar.set(Quiz.emptyAnswers))
-          ),
-          button(
-            "Refresh",
-            typ := "button",
-            onClick.mapTo(()) --> (_ => refreshConfigAndData())
+            onClick.mapTo(()) --> (_ => clearAnswers())
           )
         )
       ),
@@ -178,6 +177,11 @@ object QuizClient:
 
   private def setAnswer(id: Quiz.Id, answer: Option[Boolean]): Unit =
     answersVar.update(_ + (id -> answer))
+    saveRequests.emit(())
+
+  private def clearAnswers(): Unit =
+    answersVar.set(Quiz.emptyAnswers)
+    saveRequests.emit(())
 
   private def saveAnswers(): Unit =
     val user =
@@ -185,9 +189,7 @@ object QuizClient:
 
     handle("Saving answers")(postJson[User, User]("/api/quizzes", user)): saved =>
       userIdVar.set(saved.id)
-      answersVar.set(Quiz.normalizeAnswers(saved.answers))
-      refreshAll()
-      messageVar.set(s"Saved answers as ${saved.id}")
+      messageVar.set("Answers saved")
 
   private def deleteUser(user: User): Unit =
     val query =
@@ -210,9 +212,7 @@ object QuizClient:
       refreshAll()
 
   private def refreshQuizzes(): Unit =
-    handle("Loading user records")(getJson[Vector[User]]("/api/quizzes")): users =>
-      usersVar.set(users)
-      messageVar.set(s"Loaded ${users.size} user record(s)")
+    handle("Loading user records")(getJson[Vector[User]]("/api/quizzes"))(usersVar.set)
 
   private def refreshSummary(): Unit =
     handle("Loading summary")(getJson[QuizSummary]("/api/quizzes/summary"))(summaryVar.set)
