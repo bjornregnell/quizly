@@ -13,6 +13,7 @@ import org.scalajs.dom
 
 object QuizClient:
   val maxNameLength = 42
+  val emptyNameMessage = "name must not be empty"
   val nameRuleMessage =
     s"Use letters, digits, '-' and spaces only; max $maxNameLength characters."
 
@@ -28,7 +29,7 @@ object QuizClient:
     s"$scheme//$host:8095"
 
   private val nameVar = Var("")
-  private val nameErrorVar = Var(Option.empty[String])
+  private val nameErrorVar = Var(nameError(""))
   private val userIdVar = Var(User.unsavedId)
   private val answersVar = Var(Quiz.emptyAnswers)
   private val debugVar = Var(false)
@@ -46,7 +47,11 @@ object QuizClient:
   def mainView: HtmlElement =
     div(
       cls := "app",
-      h1("Quizly"),
+      h1(
+        child.text <-- debugVar.signal.map:
+          case true  => "Quizly Debugger"
+          case false => "Quizly"
+      ),
       form(
         cls := "editor",
         onSubmit.preventDefault.mapTo(()) --> (_ => saveAnswers()),
@@ -73,7 +78,11 @@ object QuizClient:
         ),
         div(
           cls := "actions",
-          button("Save answers", typ := "submit"),
+          button(
+            "Save answers",
+            typ := "submit",
+            disabled <-- nameVar.signal.map(name => name.trim.isEmpty)
+          ),
           button(
             "Clear answers",
             typ := "button",
@@ -193,13 +202,14 @@ object QuizClient:
     name.filter(isValidNameChar).take(maxNameLength)
 
   def nameError(name: String): Option[String] =
-    Option.when(name.length > maxNameLength || name.exists(char => !isValidNameChar(char))):
+    if name.trim.isEmpty then Some(emptyNameMessage)
+    else Option.when(name.length > maxNameLength || name.exists(char => !isValidNameChar(char))):
       nameRuleMessage
 
   private def loadUser(user: User): Unit =
     userIdVar.set(user.id)
     nameVar.set(user.name)
-    nameErrorVar.set(None)
+    nameErrorVar.set(nameError(user.name))
     answersVar.set(Quiz.normalizeAnswers(user.answers))
     messageVar.set(s"Loaded ${user.name}")
 
@@ -213,7 +223,9 @@ object QuizClient:
   private def saveAnswers(): Unit =
     val name = nameVar.now().trim
 
-    if name.isEmpty then messageVar.set("Name is required")
+    if name.isEmpty then
+      nameErrorVar.set(nameError(name))
+      messageVar.set("Name is required")
     else
       val user =
         User(userIdVar.now(), name, Quiz.normalizeAnswers(answersVar.now()))
@@ -232,6 +244,7 @@ object QuizClient:
       if userIdVar.now() == user.id then
         userIdVar.set(User.unsavedId)
         nameVar.set("")
+        nameErrorVar.set(nameError(""))
         answersVar.set(Quiz.emptyAnswers)
       refreshAll()
       messageVar.set(s"Deleted ${user.name}")
