@@ -44,6 +44,13 @@ This repository is a minimal quiz web app built as a Scala multi-project. It has
   - `sbt --client server/assembly`
   - `sbt --client client/fastLinkJS`
 
+## Scala Style
+
+- Default to non-private `def`s and non-private `val`s.
+- Only use `private val`, `private var`, or `private def` when there is mutability and privacy is needed to preserve state integrity of the object, class, or trait.
+- Prefer direct style code. Avoid staged effect-system style and similar effect abstraction layers unless they are already required by surrounding code or by a concrete integration.
+- Prefer Scala 3 brace-less style with significant indentation for new code and edits.
+
 ## Metals MCP
 
 Metals can expose Scala LSP context to AI agents through an HTTP MCP server. Use it when available for Scala-aware navigation, diagnostics, symbols, definitions, and other LSP-style context.

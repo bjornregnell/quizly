@@ -40,7 +40,7 @@ object QuizServer:
     println(s"Quiz static files served from $staticDir")
     server.join()
 
-  private def appDir: Path =
+  def appDir: Path =
     val codeSourcePath = Try(Paths.get(QuizServer.getClass.getProtectionDomain.getCodeSource.getLocation.toURI))
       .getOrElse(Paths.get("."))
     val dir = if Files.isRegularFile(codeSourcePath) then codeSourcePath.getParent else codeSourcePath
@@ -48,8 +48,8 @@ object QuizServer:
 
 final class QuizHandler(staticDir: Path) extends Handler.Abstract:
   private val quizzes = ConcurrentHashMap[String, Quiz]()
-  private val quizPath = "/api/quizzes"
-  private val quizByNamePrefix = s"$quizPath/"
+  val quizPath = "/api/quizzes"
+  val quizByNamePrefix = s"$quizPath/"
 
   override def handle(request: Request, response: Response, callback: Callback): Boolean =
     addCorsHeaders(response)
@@ -124,7 +124,7 @@ final class QuizHandler(staticDir: Path) extends Handler.Abstract:
         writeError(response, callback, HttpStatus.NOT_FOUND_404, "not found")
         true
 
-  private def normalize(quiz: Quiz): Option[Quiz] =
+  def normalize(quiz: Quiz): Option[Quiz] =
     val name = quiz.name.trim
     val question = quiz.question.trim match
       case ""    => Quiz.defaultQuestion
@@ -132,10 +132,10 @@ final class QuizHandler(staticDir: Path) extends Handler.Abstract:
 
     Option.when(name.nonEmpty)(quiz.copy(name = name, question = question))
 
-  private def quizKey(name: String, question: String): String =
+  def quizKey(name: String, question: String): String =
     s"$name\u0000$question"
 
-  private def summarizeQuizzes(): QuizSummary =
+  def summarizeQuizzes(): QuizSummary =
     val questions = (Quiz.questions ++ quizzes.values().asScala.map(_.question)).distinct
     val rows = quizzes.values().asScala.foldLeft(questions.map(QuizQuestionSummary.empty)):
       case (rows, quiz) =>
@@ -149,22 +149,22 @@ final class QuizHandler(staticDir: Path) extends Handler.Abstract:
 
     QuizSummary(rows)
 
-  private def readJsonBody[A: Reader](request: Request): Try[A] =
+  def readJsonBody[A: Reader](request: Request): Try[A] =
     Try:
       val body = String(Request.asInputStream(request).readAllBytes(), StandardCharsets.UTF_8)
       read[A](body)
 
-  private def writeJson[A: Writer](response: Response, callback: Callback, value: A): Unit =
+  def writeJson[A: Writer](response: Response, callback: Callback, value: A): Unit =
     response.setStatus(HttpStatus.OK_200)
     response.getHeaders.put(HttpHeader.CONTENT_TYPE, "application/json; charset=utf-8")
     Content.Sink.write(response, true, write(value), callback)
 
-  private def writeError(response: Response, callback: Callback, status: Int, message: String): Unit =
+  def writeError(response: Response, callback: Callback, status: Int, message: String): Unit =
     response.setStatus(status)
     response.getHeaders.put(HttpHeader.CONTENT_TYPE, "application/json; charset=utf-8")
     Content.Sink.write(response, true, write(Map("error" -> message)), callback)
 
-  private def writeStaticFile(response: Response, callback: Callback, fileName: String): Unit =
+  def writeStaticFile(response: Response, callback: Callback, fileName: String): Unit =
     if fileName.contains("/") || fileName.contains("\\") || fileName.contains("..") then
       response.setStatus(HttpStatus.FORBIDDEN_403)
       Content.Sink.write(response, true, "forbidden", callback)
@@ -179,7 +179,7 @@ final class QuizHandler(staticDir: Path) extends Handler.Abstract:
         response.getHeaders.put(HttpHeader.CONTENT_TYPE, contentType(fileName))
         Content.Sink.write(response, true, body, callback)
 
-  private def contentType(path: String): String =
+  def contentType(path: String): String =
     path match
       case name if name.endsWith(".html") => "text/html; charset=utf-8"
       case name if name.endsWith(".js")   => "text/javascript; charset=utf-8"
@@ -187,10 +187,10 @@ final class QuizHandler(staticDir: Path) extends Handler.Abstract:
       case name if name.endsWith(".css")  => "text/css; charset=utf-8"
       case _                              => "text/plain; charset=utf-8"
 
-  private def addCorsHeaders(response: Response): Unit =
+  def addCorsHeaders(response: Response): Unit =
     response.getHeaders.put(HttpHeader.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
     response.getHeaders.put(HttpHeader.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, OPTIONS")
     response.getHeaders.put(HttpHeader.ACCESS_CONTROL_ALLOW_HEADERS, "Content-Type")
 
-  private def decodePathSegment(value: String): String =
+  def decodePathSegment(value: String): String =
     URLDecoder.decode(value, StandardCharsets.UTF_8)

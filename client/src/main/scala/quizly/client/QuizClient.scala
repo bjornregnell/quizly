@@ -12,7 +12,7 @@ import com.raquo.laminar.api.L.{*, given}
 import org.scalajs.dom
 
 object QuizClient:
-  private val apiBase =
+  val apiBase =
     val location = dom.window.location
     val host = Option(location.hostname).filter(_.nonEmpty).getOrElse("localhost")
     val scheme =
@@ -35,7 +35,7 @@ object QuizClient:
     )
     refreshAll()
 
-  private def mainView: HtmlElement =
+  def mainView: HtmlElement =
     div(
       cls := "app",
       h1("Quizly"),
@@ -87,7 +87,7 @@ object QuizClient:
       )
     )
 
-  private def quizRow(quiz: Quiz): HtmlElement =
+  def quizRow(quiz: Quiz): HtmlElement =
     li(
       cls := "quiz-row",
       div(
@@ -107,7 +107,7 @@ object QuizClient:
       )
     )
 
-  private def questionRow(question: String): HtmlElement =
+  def questionRow(question: String): HtmlElement =
     val answerSignal = answersVar.signal.map(_.getOrElse(question, None))
     val radioName = s"answer-${Quiz.questions.indexOf(question)}"
 
@@ -122,7 +122,7 @@ object QuizClient:
       )
     )
 
-  private def answerRadio(
+  def answerRadio(
     radioName: String,
     question: String,
     value: Option[Boolean],
@@ -140,7 +140,7 @@ object QuizClient:
       span(labelText)
     )
 
-  private def summaryRow(summary: QuizQuestionSummary): HtmlElement =
+  def summaryRow(summary: QuizQuestionSummary): HtmlElement =
     div(
       cls := "summary-row",
       div(strong(summary.question)),
@@ -204,10 +204,10 @@ object QuizClient:
   private def refreshSummary(): Unit =
     getJson[QuizSummary]("/api/quizzes/summary").foreach(summaryVar.set)
 
-  private def getJson[A: Reader](path: String): Future[A] =
+  def getJson[A: Reader](path: String): Future[A] =
     dom.fetch(apiBase + path).toFuture.flatMap(readResponse[A])
 
-  private def postJson[A: Reader, B: Writer](path: String, value: B): Future[A] =
+  def postJson[A: Reader, B: Writer](path: String, value: B): Future[A] =
     val headers = dom.Headers()
     headers.set("Content-Type", "application/json")
 
@@ -218,7 +218,7 @@ object QuizClient:
 
     dom.fetch(apiBase + path, init).toFuture.flatMap(readResponse[A])
 
-  private def postEmpty(path: String): Future[Unit] =
+  def postEmpty(path: String): Future[Unit] =
     val init = new dom.RequestInit {}
     init.method = dom.HttpMethod.POST
 
@@ -226,7 +226,7 @@ object QuizClient:
       if response.ok then Future.successful(())
       else response.text().toFuture.flatMap(text => Future.failed(RuntimeException(text)))
 
-  private def readResponse[A: Reader](response: dom.Response): Future[A] =
+  def readResponse[A: Reader](response: dom.Response): Future[A] =
     response.text().toFuture.flatMap: text =>
       if response.ok then Future.successful(read[A](text))
       else Future.failed(RuntimeException(text))

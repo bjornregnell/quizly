@@ -13,12 +13,12 @@ import java.nio.file.{Files, Path}
 import org.eclipse.jetty.server.{Server, ServerConnector}
 
 class QuizServerSuite extends munit.FunSuite:
-  private val httpClient = HttpClient
+  val httpClient = HttpClient
     .newBuilder()
     .followRedirects(HttpClient.Redirect.NEVER)
     .build()
 
-  test("OPTIONS /api/quizzes responds to a CORS preflight") {
+  test("OPTIONS /api/quizzes responds to a CORS preflight"):
     withRunningServer: base =>
       val response = send:
         HttpRequest
@@ -28,9 +28,8 @@ class QuizServerSuite extends munit.FunSuite:
 
       assertEquals(response.statusCode(), 204)
       assertEquals(response.headers().firstValue("access-control-allow-origin").orElse(""), "*")
-  }
 
-  test("GET /api/quizzes returns stored quizzes") {
+  test("GET /api/quizzes returns stored quizzes"):
     withRunningServer: base =>
       val quiz = Quiz("Ada", Quiz.defaultQuestion, Some(true))
       postJson(base, "/api/quizzes", write(quiz))
@@ -39,9 +38,8 @@ class QuizServerSuite extends munit.FunSuite:
 
       assertOkJson(response)
       assertEquals(read[Vector[Quiz]](response.body()), Vector(quiz))
-  }
 
-  test("GET /api/quizzes/summary returns per-question counts") {
+  test("GET /api/quizzes/summary returns per-question counts"):
     withRunningServer: base =>
       postJson(base, "/api/quizzes", write(Quiz("Ada", Quiz.defaultQuestion, Some(true))))
       postJson(base, "/api/quizzes", write(Quiz("Grace", Quiz.governmentQuestion, Some(false))))
@@ -54,9 +52,8 @@ class QuizServerSuite extends munit.FunSuite:
       assertEquals(summary.questions.find(_.question == Quiz.defaultQuestion).map(_.trueAnswers), Some(1))
       assertEquals(summary.questions.find(_.question == Quiz.governmentQuestion).map(_.falseAnswers), Some(1))
       assertEquals(summary.questions.find(_.question == Quiz.governmentQuestion).map(_.noAnswerYet), Some(1))
-  }
 
-  test("GET /api/quizzes/{name} returns the named user's quizzes") {
+  test("GET /api/quizzes/{name} returns the named user's quizzes"):
     withRunningServer: base =>
       val adaQuiz = Quiz("Ada Lovelace", Quiz.defaultQuestion, Some(true))
       postJson(base, "/api/quizzes", write(adaQuiz))
@@ -66,9 +63,8 @@ class QuizServerSuite extends munit.FunSuite:
 
       assertOkJson(response)
       assertEquals(read[Vector[Quiz]](response.body()), Vector(adaQuiz))
-  }
 
-  test("POST /api/quizzes creates a quiz") {
+  test("POST /api/quizzes creates a quiz"):
     withRunningServer: base =>
       val quiz = Quiz("Ada", Quiz.defaultQuestion, Some(true))
 
@@ -76,9 +72,8 @@ class QuizServerSuite extends munit.FunSuite:
 
       assertOkJson(response)
       assertEquals(read[Quiz](response.body()), quiz)
-  }
 
-  test("POST /api/quizzes/delete deletes a quiz") {
+  test("POST /api/quizzes/delete deletes a quiz"):
     withRunningServer: base =>
       val quiz = Quiz("Ada", Quiz.defaultQuestion, Some(true))
       postJson(base, "/api/quizzes", write(quiz))
@@ -87,44 +82,39 @@ class QuizServerSuite extends munit.FunSuite:
 
       assertOkJson(response)
       assertEquals(read[Quiz](response.body()), quiz)
-  }
 
-  test("GET /quizly redirects to /quizly/") {
+  test("GET /quizly redirects to /quizly/"):
     withRunningServer: base =>
       val response = get(base, "/quizly")
 
       assertEquals(response.statusCode(), 301)
       assertEquals(response.headers().firstValue("location").orElse(""), "/quizly/")
-  }
 
-  test("GET /quizly/ serves the SPA shell") {
+  test("GET /quizly/ serves the SPA shell"):
     withRunningServer: base =>
       val response = get(base, "/quizly/")
 
       assertEquals(response.statusCode(), 200)
       assertEquals(response.headers().firstValue("content-type").orElse(""), "text/html; charset=utf-8")
       assertEquals(response.body(), indexHtml)
-  }
 
-  test("GET /quizly/index.html serves the SPA shell") {
+  test("GET /quizly/index.html serves the SPA shell"):
     withRunningServer: base =>
       val response = get(base, "/quizly/index.html")
 
       assertEquals(response.statusCode(), 200)
       assertEquals(response.headers().firstValue("content-type").orElse(""), "text/html; charset=utf-8")
       assertEquals(response.body(), indexHtml)
-  }
 
-  test("GET /assets/main.js serves the Scala.js bundle") {
+  test("GET /assets/main.js serves the Scala.js bundle"):
     withRunningServer: base =>
       val response = get(base, "/assets/main.js")
 
       assertEquals(response.statusCode(), 200)
       assertEquals(response.headers().firstValue("content-type").orElse(""), "text/javascript; charset=utf-8")
       assertEquals(response.body(), mainJs)
-  }
 
-  private def withRunningServer(run: URI => Unit): Unit =
+  def withRunningServer(run: URI => Unit): Unit =
     val staticDir = Files.createTempDirectory("quizly-server-test")
     Files.writeString(staticDir.resolve("index.html"), indexHtml, StandardCharsets.UTF_8)
     Files.writeString(staticDir.resolve("main.js"), mainJs, StandardCharsets.UTF_8)
@@ -143,13 +133,13 @@ class QuizServerSuite extends munit.FunSuite:
       server.destroy()
       deleteStaticDir(staticDir)
 
-  private def get(base: URI, path: String): HttpResponse[String] =
+  def get(base: URI, path: String): HttpResponse[String] =
     send(HttpRequest.newBuilder(base.resolve(path)).GET().build())
 
-  private def post(base: URI, path: String): HttpResponse[String] =
+  def post(base: URI, path: String): HttpResponse[String] =
     send(HttpRequest.newBuilder(base.resolve(path)).POST(BodyPublishers.noBody()).build())
 
-  private def postJson(base: URI, path: String, body: String): HttpResponse[String] =
+  def postJson(base: URI, path: String, body: String): HttpResponse[String] =
     send:
       HttpRequest
         .newBuilder(base.resolve(path))
@@ -157,20 +147,20 @@ class QuizServerSuite extends munit.FunSuite:
         .POST(BodyPublishers.ofString(body, StandardCharsets.UTF_8))
         .build()
 
-  private def send(request: HttpRequest): HttpResponse[String] =
+  def send(request: HttpRequest): HttpResponse[String] =
     httpClient.send(request, BodyHandlers.ofString(StandardCharsets.UTF_8))
 
-  private def assertOkJson(response: HttpResponse[String]): Unit =
+  def assertOkJson(response: HttpResponse[String]): Unit =
     assertEquals(response.statusCode(), 200)
     assertEquals(response.headers().firstValue("content-type").orElse(""), "application/json; charset=utf-8")
 
-  private def encode(value: String): String =
+  def encode(value: String): String =
     URLEncoder.encode(value, StandardCharsets.UTF_8)
 
-  private def deleteStaticDir(staticDir: Path): Unit =
+  def deleteStaticDir(staticDir: Path): Unit =
     Files.deleteIfExists(staticDir.resolve("index.html"))
     Files.deleteIfExists(staticDir.resolve("main.js"))
     Files.deleteIfExists(staticDir)
 
-  private val indexHtml = "<!doctype html><main id=\"app\"></main>"
-  private val mainJs = "console.log('quizly test');"
+  val indexHtml = "<!doctype html><main id=\"app\"></main>"
+  val mainJs = "console.log('quizly test');"
