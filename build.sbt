@@ -9,6 +9,7 @@ val jettyVersion = "12.1.10"
 val laminarVersion = "18.0.0-M5"
 val scalaJsDomVersion = "2.8.1"
 val upickleVersion = "4.4.3"
+val munitVersion = "1.3.3"
 
 lazy val root = project
   .in(file("."))
@@ -34,7 +35,11 @@ lazy val server = project
   .dependsOn(commonJVM)
   .settings(
     name := "quizly-server",
-    libraryDependencies += "org.eclipse.jetty" % "jetty-server" % jettyVersion,
+    libraryDependencies ++= Seq(
+      "org.eclipse.jetty" % "jetty-server" % jettyVersion,
+      "org.scalameta" %% "munit" % munitVersion % Test
+    ),
+    Test / testFrameworks += new TestFramework("munit.Framework"),
     assembly / mainClass := Some("quizly.server.QuizServer"),
     assembly / assemblyJarName := "quizly.jar",
     assembly / assemblyMergeStrategy := {
