@@ -27,6 +27,7 @@ This repository is a minimal quiz web app built as a Scala multi-project. It has
 - `client/index.html` is the static HTML shell for the SPA.
 - `clean-build-and-run.sh` builds and starts a local one-process Jetty setup from a clean build.
 - `rebuild.sh` restarts the local Jetty setup faster for browser testing without `sbt clean` or assembly by default.
+- `test-server.sh` runs the server API tests using temporary localhost ports.
 - `deploy.sh` builds, copies artifacts to bjornix, and restarts the remote screen session.
 - The old single-project sources under `src/main/scala/quizly` have been removed from the active architecture.
 
@@ -43,6 +44,7 @@ This repository is a minimal quiz web app built as a Scala multi-project. It has
   - uPickle `4.4.3`
 - Useful commands:
   - `sbt --client compile`
+  - `./test-server.sh`
   - `sbt --client server/assembly`
   - `sbt --client client/fastLinkJS`
 
