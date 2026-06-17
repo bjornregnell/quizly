@@ -14,16 +14,15 @@ case class QuizQuestionSummary(
 
 case class QuizSummary(questions: Vector[QuizQuestionSummary])
 
+case class ServerConfig(debug: Boolean)
+
 object Quiz:
   type Id = Int
   type Question = String
 
-  val defaultQuestionId = 1
-  val governmentQuestionId = 2
-
   val questions: Map[Id, Question] = Map(
-    defaultQuestionId -> "The war will end in 2026",
-    governmentQuestionId -> "The current government will remain in power after the election"
+    1 -> "The war will end in 2026",
+    2 -> "The current government will remain in power after the election"
   )
 
   val questionIds: Vector[Id] =
@@ -53,3 +52,6 @@ object QuizSummary:
       QuizQuestionSummary.empty(row._1, row._2)
 
   given ReadWriter[QuizSummary] = macroRW
+
+object ServerConfig:
+  given ReadWriter[ServerConfig] = macroRW

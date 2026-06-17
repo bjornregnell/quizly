@@ -1,6 +1,6 @@
 package quizly.server
 
-import quizly.common.{Quiz, QuizQuestionSummary, QuizSummary, User}
+import quizly.common.{Quiz, QuizQuestionSummary, QuizSummary, ServerConfig, User}
 import upickle.default.*
 
 import java.net.URLDecoder
@@ -41,10 +41,16 @@ object QuizServer:
       .getOrElse(appDir)
       .toAbsolutePath
       .normalize()
+    val debug = hasArg(args, "--debug")
 
-    start(apiPort, spaPort, staticDir)
+    start(apiPort, spaPort, staticDir, debug)
 
-  def start(apiPort: Int, spaPort: Int, staticDir: Path): Unit =
+  def start(
+      apiPort: Int,
+      spaPort: Int,
+      staticDir: Path,
+      debug: Boolean = false
+  ): Unit =
     val server = Server()
     val apiConnector = ServerConnector(server)
     val spaConnector = ServerConnector(server)
@@ -53,12 +59,13 @@ object QuizServer:
 
     server.addConnector(apiConnector)
     server.addConnector(spaConnector)
-    server.setHandler(QuizHandler(staticDir))
+    server.setHandler(QuizHandler(staticDir, debug))
     server.start()
 
     println(s"Quiz API listening on http://localhost:$apiPort/api/quizzes")
     println(s"Quiz SPA listening on http://localhost:$spaPort/quizly")
     println(s"Quiz static files served from $staticDir")
+    println(s"Quiz debug mode: $debug")
     server.join()
 
   def argValue(args: Array[String], name: String): Option[String] =
@@ -68,6 +75,9 @@ object QuizServer:
       args.collectFirst:
         case arg if arg.startsWith(s"$name=") =>
           arg.drop(name.length + 1)
+
+  def hasArg(args: Array[String], name: String): Boolean =
+    args.contains(name)
 
   def appDir: Path =
     val codeSourcePath = Try(
@@ -81,9 +91,11 @@ object QuizServer:
       else codeSourcePath
     Option(dir).getOrElse(Paths.get(".")).toAbsolutePath.normalize()
 
-final class QuizHandler(staticDir: Path) extends Handler.Abstract:
+final class QuizHandler(staticDir: Path, debug: Boolean = false)
+    extends Handler.Abstract:
   private val users = ConcurrentHashMap[String, User]()
   val quizPath = "/api/quizzes"
+  val configPath = "/api/config"
   val quizByNamePrefix = s"$quizPath/"
 
   override def handle(
@@ -106,6 +118,10 @@ final class QuizHandler(staticDir: Path) extends Handler.Abstract:
           .toVector
           .sortBy(user => user.name.toLowerCase)
         writeJson(response, callback, values)
+        true
+
+      case ("GET", `configPath`) =>
+        writeJson(response, callback, ServerConfig(debug))
         true
 
       case ("GET", "/api/quizzes/summary") =>

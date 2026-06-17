@@ -1,6 +1,6 @@
 package quizly.client
 
-import quizly.common.{Quiz, QuizQuestionSummary, QuizSummary, User}
+import quizly.common.{Quiz, QuizQuestionSummary, QuizSummary, ServerConfig, User}
 import upickle.default.*
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -30,6 +30,7 @@ object QuizClient:
   private val nameVar = Var("")
   private val nameErrorVar = Var(Option.empty[String])
   private val answersVar = Var(Quiz.emptyAnswers)
+  private val debugVar = Var(false)
   private val usersVar = Var(Vector.empty[User])
   private val summaryVar = Var(QuizSummary.empty)
   private val messageVar = Var("Ready")
@@ -39,7 +40,7 @@ object QuizClient:
       dom.document.getElementById("app"),
       mainView
     )
-    refreshAll()
+    refreshConfigAndData()
 
   def mainView: HtmlElement =
     div(
@@ -80,7 +81,7 @@ object QuizClient:
           button(
             "Refresh",
             typ := "button",
-            onClick.mapTo(()) --> (_ => refreshAll())
+            onClick.mapTo(()) --> (_ => refreshConfigAndData())
           )
         )
       ),
@@ -93,6 +94,13 @@ object QuizClient:
           children <-- summaryVar.signal.map(_.questions.map(summaryRow))
         )
       ),
+      child <-- debugVar.signal.map:
+        case true  => storedUsersView
+        case false => emptyNode
+    )
+
+  def storedUsersView: HtmlElement =
+    div(
       h2("Stored users"),
       ul(
         cls := "quiz-list",
@@ -221,8 +229,13 @@ object QuizClient:
       messageVar.set(s"Deleted ${user.name}")
 
   private def refreshAll(): Unit =
-    refreshQuizzes()
+    if debugVar.now() then refreshQuizzes()
     refreshSummary()
+
+  private def refreshConfigAndData(): Unit =
+    getJson[ServerConfig]("/api/config").foreach: config =>
+      debugVar.set(config.debug)
+      refreshAll()
 
   private def refreshQuizzes(): Unit =
     getJson[Vector[User]]("/api/quizzes").foreach: users =>

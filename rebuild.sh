@@ -180,12 +180,14 @@ if [[ "$mode" == "assembly" ]]; then
     setsid java -jar "$server_jar" \
       --api-port "$api_port" \
       --spa-port "$spa_port" \
-      --static-dir "$static_dir" >"$log_file" 2>&1 &
+      --static-dir "$static_dir" \
+      --debug >"$log_file" 2>&1 &
   else
     java -jar "$server_jar" \
       --api-port "$api_port" \
       --spa-port "$spa_port" \
-      --static-dir "$static_dir" >"$log_file" 2>&1 &
+      --static-dir "$static_dir" \
+      --debug >"$log_file" 2>&1 &
   fi
 else
   if [[ ! -f "$server_classpath_file" ]]; then
@@ -198,12 +200,14 @@ else
     setsid java -cp "$server_classpath" quizly.server.QuizServer \
       --api-port "$api_port" \
       --spa-port "$spa_port" \
-      --static-dir "$static_dir" >"$log_file" 2>&1 &
+      --static-dir "$static_dir" \
+      --debug >"$log_file" 2>&1 &
   else
     java -cp "$server_classpath" quizly.server.QuizServer \
       --api-port "$api_port" \
       --spa-port "$spa_port" \
-      --static-dir "$static_dir" >"$log_file" 2>&1 &
+      --static-dir "$static_dir" \
+      --debug >"$log_file" 2>&1 &
   fi
 fi
 server_pid="$!"

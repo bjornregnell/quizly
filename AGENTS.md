@@ -99,11 +99,13 @@ The server entry point is `quizly.server.QuizServer`.
   - API connector: arg `--api-port`, then env `API_PORT`, then env `PORT`, else `8095`
   - SPA/static connector: arg `--spa-port`, then env `SPA_PORT`, else `8096`
 - Static files are read from arg `--static-dir`, then env `STATIC_DIR`, or by default from the directory beside the running jar/classpath.
+- Passing `--debug` enables local debug UI. Production deploys should not pass `--debug`.
 - Static routes:
   - `GET /quizly` redirects to `/quizly/`
   - `GET /quizly/` and `/quizly/index.html` serve `index.html`
   - `GET /assets/main.js` serves `main.js`
 - API routes:
+  - `GET /api/config` returns `ServerConfig(debug: Boolean)`.
   - `GET /api/quizzes` returns all user records.
   - `GET /api/quizzes/summary` returns per-question counts.
   - `GET /api/quizzes/{name}` returns one user record.
@@ -126,6 +128,7 @@ The SPA entry point is `quizly.client.QuizClient`.
   - stored users
   - summary
   - message
+- The "Stored users" debug section is shown only when `/api/config` returns `debug = true`.
 - It communicates with the API using `fetch`.
 - JSON is encoded/decoded with uPickle and the shared model from `common`.
 
@@ -157,7 +160,7 @@ The script:
 - Stops a running local Quizly server on the configured API/SPA ports.
 - Runs `sbt --client client/fastLinkJS` and `sbt --client server/writeServerClasspath` without `sbt clean`.
 - Copies the SPA shell and generated client JavaScript beside the server jar.
-- Starts `java -cp ... quizly.server.QuizServer` and keeps it running in the foreground.
+- Starts `java -cp ... quizly.server.QuizServer --debug` and keeps it running in the foreground.
 - Stores runtime state in `tmp/quizly-pid` and `tmp/quizly.log`.
 - Prints the SPA URL for browser testing.
 
@@ -201,7 +204,7 @@ The script:
 - Runs `sbt --client client/fastLinkJS`.
 - Copies `quizly.jar`, `client/index.html`, generated `main.js`, and `main.js.map` if present to `bjornix:/home/bjornr/quizly/`.
 - Restarts the remote `screen` session named `quizly`.
-- Starts the server with `--api-port`, `--spa-port`, and `--static-dir`.
+- Starts the server with `--api-port`, `--spa-port`, and `--static-dir`, without `--debug`.
 
 Override ports like this:
 

@@ -1,6 +1,6 @@
 package quizly.server
 
-import quizly.common.{Quiz, QuizSummary, User}
+import quizly.common.{Quiz, QuizSummary, ServerConfig, User}
 import upickle.default.*
 
 import java.net.{URI, URLEncoder}
@@ -13,6 +13,9 @@ import java.nio.file.{Files, Path}
 import org.eclipse.jetty.server.{Server, ServerConnector}
 
 class QuizServerSuite extends munit.FunSuite:
+  val warQuestionId = 1
+  val governmentQuestionId = 2
+
   val httpClient = HttpClient
     .newBuilder()
     .followRedirects(HttpClient.Redirect.NEVER)
@@ -29,9 +32,23 @@ class QuizServerSuite extends munit.FunSuite:
       assertEquals(response.statusCode(), 204)
       assertEquals(response.headers().firstValue("access-control-allow-origin").orElse(""), "*")
 
+  test("GET /api/config returns non-debug mode by default"):
+    withRunningServer: base =>
+      val response = get(base, "/api/config")
+
+      assertOkJson(response)
+      assertEquals(read[ServerConfig](response.body()), ServerConfig(debug = false))
+
+  test("GET /api/config returns debug mode when enabled"):
+    withDebugServer: base =>
+      val response = get(base, "/api/config")
+
+      assertOkJson(response)
+      assertEquals(read[ServerConfig](response.body()), ServerConfig(debug = true))
+
   test("GET /api/quizzes returns stored users"):
     withRunningServer: base =>
-      val user = User("Ada", Quiz.emptyAnswers + (Quiz.defaultQuestionId -> Some(true)))
+      val user = User("Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
       postJson(base, "/api/quizzes", write(user))
 
       val response = get(base, "/api/quizzes")
@@ -44,26 +61,26 @@ class QuizServerSuite extends munit.FunSuite:
       postJson(
         base,
         "/api/quizzes",
-        write(User("Ada", Quiz.emptyAnswers + (Quiz.defaultQuestionId -> Some(true))))
+        write(User("Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true))))
       )
       postJson(
         base,
         "/api/quizzes",
-        write(User("Grace", Quiz.emptyAnswers + (Quiz.governmentQuestionId -> Some(false))))
+        write(User("Grace", Quiz.emptyAnswers + (governmentQuestionId -> Some(false))))
       )
 
       val response = get(base, "/api/quizzes/summary")
 
       assertOkJson(response)
       val summary = read[QuizSummary](response.body())
-      assertEquals(summary.questions.find(_.id == Quiz.defaultQuestionId).map(_.trueAnswers), Some(1))
-      assertEquals(summary.questions.find(_.id == Quiz.defaultQuestionId).map(_.noAnswerYet), Some(1))
-      assertEquals(summary.questions.find(_.id == Quiz.governmentQuestionId).map(_.falseAnswers), Some(1))
-      assertEquals(summary.questions.find(_.id == Quiz.governmentQuestionId).map(_.noAnswerYet), Some(1))
+      assertEquals(summary.questions.find(_.id == warQuestionId).map(_.trueAnswers), Some(1))
+      assertEquals(summary.questions.find(_.id == warQuestionId).map(_.noAnswerYet), Some(1))
+      assertEquals(summary.questions.find(_.id == governmentQuestionId).map(_.falseAnswers), Some(1))
+      assertEquals(summary.questions.find(_.id == governmentQuestionId).map(_.noAnswerYet), Some(1))
 
   test("GET /api/quizzes/{name} returns the named user"):
     withRunningServer: base =>
-      val ada = User("Ada Lovelace", Quiz.emptyAnswers + (Quiz.defaultQuestionId -> Some(true)))
+      val ada = User("Ada Lovelace", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
       postJson(base, "/api/quizzes", write(ada))
       postJson(base, "/api/quizzes", write(User("Grace Hopper", Quiz.emptyAnswers)))
 
@@ -74,7 +91,7 @@ class QuizServerSuite extends munit.FunSuite:
 
   test("POST /api/quizzes creates a user"):
     withRunningServer: base =>
-      val user = User("Ada", Quiz.emptyAnswers + (Quiz.defaultQuestionId -> Some(true)))
+      val user = User("Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
 
       val response = postJson(base, "/api/quizzes", write(user))
 
@@ -83,7 +100,7 @@ class QuizServerSuite extends munit.FunSuite:
 
   test("POST /api/quizzes/delete deletes a user"):
     withRunningServer: base =>
-      val user = User("Ada", Quiz.emptyAnswers + (Quiz.defaultQuestionId -> Some(true)))
+      val user = User("Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
       postJson(base, "/api/quizzes", write(user))
 
       val response = post(base, s"/api/quizzes/delete?name=${encode(user.name)}")
@@ -123,6 +140,12 @@ class QuizServerSuite extends munit.FunSuite:
       assertEquals(response.body(), mainJs)
 
   def withRunningServer(run: URI => Unit): Unit =
+    withRunningServer(debug = false, run)
+
+  def withDebugServer(run: URI => Unit): Unit =
+    withRunningServer(debug = true, run)
+
+  def withRunningServer(debug: Boolean, run: URI => Unit): Unit =
     val staticDir = Files.createTempDirectory("quizly-server-test")
     Files.writeString(staticDir.resolve("index.html"), indexHtml, StandardCharsets.UTF_8)
     Files.writeString(staticDir.resolve("main.js"), mainJs, StandardCharsets.UTF_8)
@@ -132,7 +155,7 @@ class QuizServerSuite extends munit.FunSuite:
     connector.setHost("127.0.0.1")
     connector.setPort(0)
     server.addConnector(connector)
-    server.setHandler(QuizHandler(staticDir))
+    server.setHandler(QuizHandler(staticDir, debug))
 
     server.start()
     try run(URI(s"http://127.0.0.1:${connector.getLocalPort}"))
