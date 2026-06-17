@@ -14,7 +14,8 @@ import org.scalajs.dom
 object QuizClient:
   val apiBase =
     val location = dom.window.location
-    val host = Option(location.hostname).filter(_.nonEmpty).getOrElse("localhost")
+    val host =
+      Option(location.hostname).filter(_.nonEmpty).getOrElse("localhost")
     val scheme =
       location.protocol match
         case "https:" => "https:"
@@ -92,7 +93,9 @@ object QuizClient:
       cls := "quiz-row",
       div(
         strong(quiz.name),
-        span(s" - ${quiz.question} - ${quiz.answer.fold("not answered")(_.toString)}")
+        span(
+          s" - ${quiz.question} - ${quiz.answer.fold("not answered")(_.toString)}"
+        )
       ),
       div(
         cls := "row-actions",
@@ -123,11 +126,11 @@ object QuizClient:
     )
 
   def answerRadio(
-    radioName: String,
-    question: String,
-    value: Option[Boolean],
-    labelText: String,
-    answerSignal: Signal[Option[Boolean]]
+      radioName: String,
+      question: String,
+      value: Option[Boolean],
+      labelText: String,
+      answerSignal: Signal[Option[Boolean]]
   ): HtmlElement =
     label(
       cls := "radio-option",
@@ -153,7 +156,8 @@ object QuizClient:
     )
 
   private def loadQuiz(quiz: Quiz): Unit =
-    val answersByQuestion = quizzesVar.now()
+    val answersByQuestion = quizzesVar
+      .now()
       .filter(_.name == quiz.name)
       .map(quiz => quiz.question -> quiz.answer)
       .toMap
@@ -168,17 +172,20 @@ object QuizClient:
   private def saveAnswers(): Unit =
     val name = nameVar.now().trim
 
-    if name.isEmpty then
-      messageVar.set("Name is required")
+    if name.isEmpty then messageVar.set("Name is required")
     else
       val answers = answersVar.now()
       val quizzes = Quiz.questions.map: question =>
         Quiz(name, question, answers.getOrElse(question, None))
 
-      Future.sequence(quizzes.map(quiz => postJson[Quiz, Quiz]("/api/quizzes", quiz))).foreach: saved =>
-        answersVar.set(saved.map(quiz => quiz.question -> quiz.answer).toMap)
-        refreshAll()
-        messageVar.set(s"Saved ${saved.size} answer(s) for $name")
+      Future
+        .sequence(
+          quizzes.map(quiz => postJson[Quiz, Quiz]("/api/quizzes", quiz))
+        )
+        .foreach: saved =>
+          answersVar.set(saved.map(quiz => quiz.question -> quiz.answer).toMap)
+          refreshAll()
+          messageVar.set(s"Saved ${saved.size} answer(s) for $name")
 
   private def deleteQuiz(quiz: Quiz): Unit =
     val query =
@@ -187,8 +194,10 @@ object QuizClient:
     postEmpty(s"/api/quizzes/delete?$query").foreach: _ =>
       if nameVar.now() == quiz.name then
         answersVar.update(_ + (quiz.question -> None))
-      if nameVar.now() == quiz.name && quizzesVar.now().count(_.name == quiz.name) <= 1 then
-        nameVar.set("")
+      if nameVar.now() == quiz.name && quizzesVar
+          .now()
+          .count(_.name == quiz.name) <= 1
+      then nameVar.set("")
       refreshAll()
       messageVar.set(s"Deleted ${quiz.name} - ${quiz.question}")
 
@@ -222,11 +231,21 @@ object QuizClient:
     val init = new dom.RequestInit {}
     init.method = dom.HttpMethod.POST
 
-    dom.fetch(apiBase + path, init).toFuture.flatMap: response =>
-      if response.ok then Future.successful(())
-      else response.text().toFuture.flatMap(text => Future.failed(RuntimeException(text)))
+    dom
+      .fetch(apiBase + path, init)
+      .toFuture
+      .flatMap: response =>
+        if response.ok then Future.successful(())
+        else
+          response
+            .text()
+            .toFuture
+            .flatMap(text => Future.failed(RuntimeException(text)))
 
   def readResponse[A: Reader](response: dom.Response): Future[A] =
-    response.text().toFuture.flatMap: text =>
-      if response.ok then Future.successful(read[A](text))
-      else Future.failed(RuntimeException(text))
+    response
+      .text()
+      .toFuture
+      .flatMap: text =>
+        if response.ok then Future.successful(read[A](text))
+        else Future.failed(RuntimeException(text))
