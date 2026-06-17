@@ -51,7 +51,7 @@ class QuizServerSuite extends munit.FunSuite:
   test("GET /api/quizzes returns stored users"):
     withRunningServer: base =>
       val user =
-        User(adaId, "Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
+        User(adaId, Quiz.emptyAnswers + (warQuestionId -> Some(true)))
       postJson(base, "/api/quizzes", write(user))
 
       val response = get(base, "/api/quizzes")
@@ -64,12 +64,12 @@ class QuizServerSuite extends munit.FunSuite:
       postJson(
         base,
         "/api/quizzes",
-        write(User(adaId, "Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true))))
+        write(User(adaId, Quiz.emptyAnswers + (warQuestionId -> Some(true))))
       )
       postJson(
         base,
         "/api/quizzes",
-        write(User(graceId, "Grace", Quiz.emptyAnswers + (governmentQuestionId -> Some(false))))
+        write(User(graceId, Quiz.emptyAnswers + (governmentQuestionId -> Some(false))))
       )
 
       val response = get(base, "/api/quizzes/summary")
@@ -85,9 +85,9 @@ class QuizServerSuite extends munit.FunSuite:
   test("GET /api/quizzes/{id} returns the identified user"):
     withRunningServer: base =>
       val ada =
-        User(adaId, "Ada Lovelace", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
+        User(adaId, Quiz.emptyAnswers + (warQuestionId -> Some(true)))
       postJson(base, "/api/quizzes", write(ada))
-      postJson(base, "/api/quizzes", write(User(graceId, "Grace Hopper", Quiz.emptyAnswers)))
+      postJson(base, "/api/quizzes", write(User(graceId, Quiz.emptyAnswers)))
 
       val response = get(base, s"/api/quizzes/${encode(ada.id)}")
 
@@ -97,42 +97,40 @@ class QuizServerSuite extends munit.FunSuite:
   test("POST /api/quizzes creates a user id when needed"):
     withRunningServer: base =>
       val user =
-        User(User.unsavedId, "Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
+        User(User.unsavedId, Quiz.emptyAnswers + (warQuestionId -> Some(true)))
 
       val response = postJson(base, "/api/quizzes", write(user))
 
       assertOkJson(response)
       val saved = read[User](response.body())
       assert(saved.id.nonEmpty)
-      assertEquals(saved.name, user.name)
       assertEquals(saved.answers, user.answers)
 
-  test("POST /api/quizzes allows duplicate user names"):
+  test("POST /api/quizzes assigns distinct ids to separate unsaved posts"):
     withRunningServer: base =>
       val first = read[User]:
         postJson(
           base,
           "/api/quizzes",
-          write(User(User.unsavedId, "Ada", Quiz.emptyAnswers))
+          write(User(User.unsavedId, Quiz.emptyAnswers))
         ).body()
       val second = read[User]:
         postJson(
           base,
           "/api/quizzes",
-          write(User(User.unsavedId, "Ada", Quiz.emptyAnswers))
+          write(User(User.unsavedId, Quiz.emptyAnswers))
         ).body()
 
       val response = get(base, "/api/quizzes")
 
       assertOkJson(response)
       assertEquals(read[Vector[User]](response.body()).map(_.id).toSet, Set(first.id, second.id))
-      assertEquals(first.name, second.name)
       assertNotEquals(first.id, second.id)
 
   test("POST /api/quizzes/delete deletes a user"):
     withRunningServer: base =>
       val user =
-        User(adaId, "Ada", Quiz.emptyAnswers + (warQuestionId -> Some(true)))
+        User(adaId, Quiz.emptyAnswers + (warQuestionId -> Some(true)))
       postJson(base, "/api/quizzes", write(user))
 
       val response = post(base, s"/api/quizzes/delete?id=${encode(user.id)}")

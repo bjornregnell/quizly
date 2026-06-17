@@ -9,7 +9,7 @@ This repository is a minimal quiz web app built as a Scala multi-project. It has
 - The deployed bjornix URLs are:
   - SPA: `http://bjornix.cs.lth.se:8096/quizly`
   - API summary: `http://bjornix.cs.lth.se:8095/api/quizzes/summary`
-- The app asks for a user name and answers to a fixed catalog of propositions.
+- The app records answers to a fixed catalog of propositions, keyed by a generated user id.
   - The catalog is defined in `Quiz.questions` in `common/src/main/scala/quizly/common/Quiz.scala`.
   - It currently holds 20 Swedish propositions about future events (politics, energy, technology, etc.).
 - Each answer is a radio choice: `true`, `false`, or `No answer yet`.
@@ -87,7 +87,7 @@ The shared model lives in `common/src/main/scala/quizly/common/Quiz.scala`.
 - `Quiz.Id` is an alias for `Int`.
 - `Quiz.Question` is an alias for `String`.
 - `Quiz.questions: Map[Quiz.Id, Quiz.Question]` maps question ids to propositions.
-- `User(id: User.Id, name: String, answers: Map[Quiz.Id, Option[Boolean]])`
+- `User(id: User.Id, answers: Map[Quiz.Id, Option[Boolean]])`
 - `User.Id` is an alias for `String`.
 - `User.unsavedId` is the empty id sent by the SPA when the server should generate a UUID.
 - `None` means no answer has been given yet for that question id.
@@ -125,7 +125,6 @@ The SPA entry point is `quizly.client.QuizClient`.
 - It is a Laminar app mounted into `<main id="app"></main>`.
 - It computes the API base from the current browser scheme/host and hardcodes API port `8095`.
 - It stores UI state in Laminar `Var`s:
-  - name
   - current user id
   - answers by question id
   - stored users

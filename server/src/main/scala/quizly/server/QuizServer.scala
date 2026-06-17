@@ -117,7 +117,7 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
           .values()
           .asScala
           .toVector
-          .sortBy(user => (user.name.toLowerCase, user.id))
+          .sortBy(_.id)
         writeJson(response, callback, values)
         true
 
@@ -147,17 +147,9 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
       case ("POST", `quizPath`) =>
         readJsonBody[User](request) match
           case Success(user) =>
-            normalize(user) match
-              case Some(normalized) =>
-                users.put(normalized.id, normalized)
-                writeJson(response, callback, normalized)
-              case None =>
-                writeError(
-                  response,
-                  callback,
-                  HttpStatus.BAD_REQUEST_400,
-                  "User name is required"
-                )
+            val normalized = normalize(user)
+            users.put(normalized.id, normalized)
+            writeJson(response, callback, normalized)
           case Failure(error) =>
             writeError(
               response,
@@ -211,13 +203,12 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
         writeError(response, callback, HttpStatus.NOT_FOUND_404, "not found")
         true
 
-  def normalize(user: User): Option[User] =
+  def normalize(user: User): User =
     val id =
       Option(user.id).map(_.trim).filter(_.nonEmpty).getOrElse(newUserId())
-    val name = user.name.trim
     val answers = Quiz.normalizeAnswers(user.answers)
 
-    Option.when(name.nonEmpty)(user.copy(id = id, name = name, answers = answers))
+    user.copy(id = id, answers = answers)
 
   def newUserId(): User.Id =
     UUID.randomUUID().toString

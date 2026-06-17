@@ -13,11 +13,6 @@ import com.raquo.laminar.api.L.{*, given}
 import org.scalajs.dom
 
 object QuizClient:
-  val maxNameLength = 42
-  val emptyNameMessage = "name must not be empty"
-  val nameRuleMessage =
-    s"Use letters, digits, '-' and spaces only; max $maxNameLength characters."
-
   val apiBase =
     val location = dom.window.location
     val host =
@@ -29,8 +24,6 @@ object QuizClient:
 
     s"$scheme//$host:8095"
 
-  private val nameVar = Var("")
-  private val nameErrorVar = Var(nameError(""))
   private val userIdVar = Var(User.unsavedId)
   private val answersVar = Var(Quiz.emptyAnswers)
   private val debugVar = Var(false)
@@ -56,22 +49,6 @@ object QuizClient:
       form(
         cls := "editor",
         onSubmit.preventDefault.mapTo(()) --> (_ => saveAnswers()),
-        label(
-          span(
-            cls := "field-label",
-            span("Name"),
-            span(
-              cls := "field-error",
-              child.text <-- nameErrorVar.signal.map(_.getOrElse(""))
-            )
-          ),
-          input(
-            typ := "text",
-            placeholder := "you name",
-            value <-- nameVar.signal,
-            onInput.mapToValue --> (value => updateName(value))
-          )
-        ),
         div(
           cls := "question-list",
           Quiz.questionRows.map: row =>
@@ -81,8 +58,7 @@ object QuizClient:
           cls := "actions",
           button(
             "Save answers",
-            typ := "submit",
-            disabled <-- nameVar.signal.map(name => name.trim.isEmpty)
+            typ := "submit"
           ),
           button(
             "Clear answers",
@@ -127,12 +103,11 @@ object QuizClient:
     li(
       cls := "quiz-row",
       div(
-        strong(user.name),
+        strong(user.id),
         span(
           s" - ${answerTexts.mkString(" - ")}"
         )
       ),
-      div(s"ID: ${user.id}"),
       div(
         cls := "row-actions",
         button(
@@ -196,59 +171,34 @@ object QuizClient:
   def answerLabel(answer: Option[Boolean]): String =
     answer.fold("not answered")(_.toString)
 
-  def isValidNameChar(char: Char): Boolean =
-    char.isLetterOrDigit || char == '-' || char == ' '
-
-  def normalizeNameInput(name: String): String =
-    name.filter(isValidNameChar).take(maxNameLength)
-
-  def nameError(name: String): Option[String] =
-    if name.trim.isEmpty then Some(emptyNameMessage)
-    else Option.when(name.length > maxNameLength || name.exists(char => !isValidNameChar(char))):
-      nameRuleMessage
-
   private def loadUser(user: User): Unit =
     userIdVar.set(user.id)
-    nameVar.set(user.name)
-    nameErrorVar.set(nameError(user.name))
     answersVar.set(Quiz.normalizeAnswers(user.answers))
-    messageVar.set(s"Loaded ${user.name}")
-
-  private def updateName(name: String): Unit =
-    nameErrorVar.set(nameError(name))
-    nameVar.set(normalizeNameInput(name))
+    messageVar.set(s"Loaded ${user.id}")
 
   private def setAnswer(id: Quiz.Id, answer: Option[Boolean]): Unit =
     answersVar.update(_ + (id -> answer))
 
   private def saveAnswers(): Unit =
-    val name = nameVar.now().trim
+    val user =
+      User(userIdVar.now(), Quiz.normalizeAnswers(answersVar.now()))
 
-    if name.isEmpty then
-      nameErrorVar.set(nameError(name))
-      messageVar.set("Name is required")
-    else
-      val user =
-        User(userIdVar.now(), name, Quiz.normalizeAnswers(answersVar.now()))
-
-      handle(s"Saving answers for $name")(postJson[User, User]("/api/quizzes", user)): saved =>
-        userIdVar.set(saved.id)
-        answersVar.set(Quiz.normalizeAnswers(saved.answers))
-        refreshAll()
-        messageVar.set(s"Saved answers for $name")
+    handle("Saving answers")(postJson[User, User]("/api/quizzes", user)): saved =>
+      userIdVar.set(saved.id)
+      answersVar.set(Quiz.normalizeAnswers(saved.answers))
+      refreshAll()
+      messageVar.set(s"Saved answers as ${saved.id}")
 
   private def deleteUser(user: User): Unit =
     val query =
       s"id=${js.URIUtils.encodeURIComponent(user.id)}"
 
-    handle(s"Deleting ${user.name}")(postEmpty(s"/api/quizzes/delete?$query")): _ =>
+    handle(s"Deleting ${user.id}")(postEmpty(s"/api/quizzes/delete?$query")): _ =>
       if userIdVar.now() == user.id then
         userIdVar.set(User.unsavedId)
-        nameVar.set("")
-        nameErrorVar.set(nameError(""))
         answersVar.set(Quiz.emptyAnswers)
       refreshAll()
-      messageVar.set(s"Deleted ${user.name}")
+      messageVar.set(s"Deleted ${user.id}")
 
   private def refreshAll(): Unit =
     if debugVar.now() then refreshQuizzes()

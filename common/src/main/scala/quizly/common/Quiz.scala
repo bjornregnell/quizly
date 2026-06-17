@@ -2,7 +2,7 @@ package quizly.common
 
 import upickle.default.*
 
-case class User(id: User.Id, name: String, answers: Map[Quiz.Id, Option[Boolean]])
+case class User(id: User.Id, answers: Map[Quiz.Id, Option[Boolean]])
 object User:
   type Id = String
   val unsavedId: Id = ""
