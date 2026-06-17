@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-api_port=8095
+api_port="${API_PORT:-${PORT:-8095}}"
 spa_port="${SPA_PORT:-8096}"
 server_jar="server/target/scala-3.9.0-RC1/quizly.jar"
 client_js="client/target/scala-3.9.0-RC1/quizly-client-fastopt/main.js"
@@ -56,7 +56,10 @@ if curl -sS --max-time 1 "http://localhost:$spa_port/quizly" >/dev/null 2>&1; th
   exit 1
 fi
 
-PORT="$api_port" SPA_PORT="$spa_port" STATIC_DIR="$static_dir" java -jar "$server_jar" &
+java -jar "$server_jar" \
+  --api-port "$api_port" \
+  --spa-port "$spa_port" \
+  --static-dir "$static_dir" &
 api_pid="$!"
 
 for _ in {1..50}; do

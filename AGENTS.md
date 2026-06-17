@@ -25,7 +25,8 @@ This repository is a minimal quiz web app built as a Scala multi-project. It has
 - `client/` is the Scala.js Laminar SPA.
 - `server/` is the JVM Jetty server.
 - `client/index.html` is the static HTML shell for the SPA.
-- `clean-build-and-run.sh` builds and starts a local one-process Jetty setup.
+- `clean-build-and-run.sh` builds and starts a local one-process Jetty setup from a clean build.
+- `rebuild.sh` restarts the local Jetty setup faster for browser testing without `sbt clean` or assembly by default.
 - `deploy.sh` builds, copies artifacts to bjornix, and restarts the remote screen session.
 - The old single-project sources under `src/main/scala/quizly` have been removed from the active architecture.
 
@@ -93,9 +94,9 @@ The shared model lives in `common/src/main/scala/quizly/common/Quiz.scala`.
 The server entry point is `quizly.server.QuizServer`.
 
 - It starts two Jetty connectors:
-  - API connector: env `API_PORT`, then env `PORT`, else `8095`
-  - SPA/static connector: env `SPA_PORT`, else `8096`
-- Static files are read from env `STATIC_DIR`, or by default from the directory beside the running jar.
+  - API connector: arg `--api-port`, then env `API_PORT`, then env `PORT`, else `8095`
+  - SPA/static connector: arg `--spa-port`, then env `SPA_PORT`, else `8096`
+- Static files are read from arg `--static-dir`, then env `STATIC_DIR`, or by default from the directory beside the running jar/classpath.
 - Static routes:
   - `GET /quizly` redirects to `/quizly/`
   - `GET /quizly/` and `/quizly/index.html` serve `index.html`
@@ -141,7 +142,34 @@ The script:
 - Runs `sbt --client client/fastLinkJS`.
 - Copies `client/index.html` to `server/target/scala-3.9.0-RC1/index.html`.
 - Copies generated `main.js` to `server/target/scala-3.9.0-RC1/main.js`.
-- Starts `java -jar server/target/scala-3.9.0-RC1/quizly.jar`.
+- Starts `java -jar server/target/scala-3.9.0-RC1/quizly.jar` with `--api-port`, `--spa-port`, and `--static-dir`.
+
+For faster local browser testing after edits, use:
+
+```bash
+./rebuild.sh
+```
+
+The script:
+
+- Stops a running local Quizly server on the configured API/SPA ports.
+- Runs `sbt --client client/fastLinkJS` and `sbt --client server/writeServerClasspath` without `sbt clean`.
+- Copies the SPA shell and generated client JavaScript beside the server jar.
+- Starts `java -cp ... quizly.server.QuizServer` and keeps it running in the foreground.
+- Stores runtime state in `tmp/quizly-pid` and `tmp/quizly.log`.
+- Prints the SPA URL for browser testing.
+
+To rebuild and run the assembled jar instead:
+
+```bash
+QUIZLY_REBUILD_MODE=assembly ./rebuild.sh
+```
+
+To start it in the background instead:
+
+```bash
+QUIZLY_BACKGROUND=1 ./rebuild.sh
+```
 
 Local browser URL:
 
@@ -171,7 +199,7 @@ The script:
 - Runs `sbt --client client/fastLinkJS`.
 - Copies `quizly.jar`, `client/index.html`, generated `main.js`, and `main.js.map` if present to `bjornix:/home/bjornr/quizly/`.
 - Restarts the remote `screen` session named `quizly`.
-- Starts the server with `PORT`, `SPA_PORT`, and `STATIC_DIR` set.
+- Starts the server with `--api-port`, `--spa-port`, and `--static-dir`.
 
 Override ports like this:
 
@@ -179,7 +207,7 @@ Override ports like this:
 API_PORT=9001 SPA_PORT=9002 ./deploy.sh
 ```
 
-The deploy script passes `PORT=$api_port` to the server for API compatibility with older code, and also supports `API_PORT` in the server.
+The deploy script reads local `API_PORT` and `SPA_PORT` overrides and passes them to the remote server as program arguments.
 
 Remote screen basics:
 

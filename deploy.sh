@@ -39,4 +39,4 @@ fi
 
 ssh "$remote_host" "set -e; mkdir -p '$remote_app_dir'"
 scp "${files[@]}" "$remote_host:$remote_app_dir/"
-ssh "$remote_host" "set -e; screen -S $screen_name -X quit || true; screen -dmS $screen_name env PORT=$api_port SPA_PORT=$spa_port STATIC_DIR=$remote_app_dir java -jar $remote_jar; screen -ls"
+ssh "$remote_host" "set -e; screen -S $screen_name -X quit || true; screen -dmS $screen_name java -jar $remote_jar --api-port $api_port --spa-port $spa_port --static-dir $remote_app_dir; screen -ls"

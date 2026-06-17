@@ -7,3 +7,4 @@
 !.vscode/settings.json
 target/
 client/quizly/
+tmp/

@@ -26,20 +26,25 @@ object QuizServer:
   val defaultSpaPort = 8096
 
   def main(args: Array[String]): Unit =
-    val apiPort = sys.env
-      .get("API_PORT")
+    val apiPort = argValue(args, "--api-port")
+      .orElse(sys.env.get("API_PORT"))
       .orElse(sys.env.get("PORT"))
       .flatMap(_.toIntOption)
       .getOrElse(defaultPort)
-    val spaPort =
-      sys.env.get("SPA_PORT").flatMap(_.toIntOption).getOrElse(defaultSpaPort)
-    val staticDir = sys.env
-      .get("STATIC_DIR")
+    val spaPort = argValue(args, "--spa-port")
+      .orElse(sys.env.get("SPA_PORT"))
+      .flatMap(_.toIntOption)
+      .getOrElse(defaultSpaPort)
+    val staticDir = argValue(args, "--static-dir")
+      .orElse(sys.env.get("STATIC_DIR"))
       .map(Paths.get(_))
       .getOrElse(appDir)
       .toAbsolutePath
       .normalize()
 
+    start(apiPort, spaPort, staticDir)
+
+  def start(apiPort: Int, spaPort: Int, staticDir: Path): Unit =
     val server = Server()
     val apiConnector = ServerConnector(server)
     val spaConnector = ServerConnector(server)
@@ -55,6 +60,14 @@ object QuizServer:
     println(s"Quiz SPA listening on http://localhost:$spaPort/quizly")
     println(s"Quiz static files served from $staticDir")
     server.join()
+
+  def argValue(args: Array[String], name: String): Option[String] =
+    args.sliding(2).collectFirst:
+      case Array(`name`, value) => value
+    .orElse:
+      args.collectFirst:
+        case arg if arg.startsWith(s"$name=") =>
+          arg.drop(name.length + 1)
 
   def appDir: Path =
     val codeSourcePath = Try(

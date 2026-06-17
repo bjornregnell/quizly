@@ -11,6 +11,9 @@ val scalaJsDomVersion = "2.8.1"
 val upickleVersion = "4.4.3"
 val munitVersion = "1.3.3"
 
+lazy val writeServerClasspath =
+  taskKey[File]("Writes the server runtime classpath for fast local runs.")
+
 lazy val root = project
   .in(file("."))
   .aggregate(commonJVM, commonJS, server, client)
@@ -40,6 +43,16 @@ lazy val server = project
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
     Test / testFrameworks += new TestFramework("munit.Framework"),
+    writeServerClasspath := {
+      val _ = (Compile / compile).value
+      val output = (Compile / target).value / "server-classpath.txt"
+      val classpath = (Compile / fullClasspath).value
+        .map(_.data.getAbsolutePath)
+        .mkString(java.io.File.pathSeparator)
+
+      IO.write(output, classpath)
+      output
+    },
     assembly / mainClass := Some("quizly.server.QuizServer"),
     assembly / assemblyJarName := "quizly.jar",
     assembly / assemblyMergeStrategy := {
