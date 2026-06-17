@@ -7,6 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.Thenable.Implicits.*
+import scala.util.{Failure, Success}
 
 import com.raquo.laminar.api.L.{*, given}
 import org.scalajs.dom
@@ -230,7 +231,7 @@ object QuizClient:
       val user =
         User(userIdVar.now(), name, Quiz.normalizeAnswers(answersVar.now()))
 
-      postJson[User, User]("/api/quizzes", user).foreach: saved =>
+      handle(s"Saving answers for $name")(postJson[User, User]("/api/quizzes", user)): saved =>
         userIdVar.set(saved.id)
         answersVar.set(Quiz.normalizeAnswers(saved.answers))
         refreshAll()
@@ -240,7 +241,7 @@ object QuizClient:
     val query =
       s"id=${js.URIUtils.encodeURIComponent(user.id)}"
 
-    postEmpty(s"/api/quizzes/delete?$query").foreach: _ =>
+    handle(s"Deleting ${user.name}")(postEmpty(s"/api/quizzes/delete?$query")): _ =>
       if userIdVar.now() == user.id then
         userIdVar.set(User.unsavedId)
         nameVar.set("")
@@ -254,17 +255,26 @@ object QuizClient:
     refreshSummary()
 
   private def refreshConfigAndData(): Unit =
-    getJson[ServerConfig]("/api/config").foreach: config =>
+    handle("Loading server config")(getJson[ServerConfig]("/api/config")): config =>
       debugVar.set(config.debug)
       refreshAll()
 
   private def refreshQuizzes(): Unit =
-    getJson[Vector[User]]("/api/quizzes").foreach: users =>
+    handle("Loading user records")(getJson[Vector[User]]("/api/quizzes")): users =>
       usersVar.set(users)
       messageVar.set(s"Loaded ${users.size} user record(s)")
 
   private def refreshSummary(): Unit =
-    getJson[QuizSummary]("/api/quizzes/summary").foreach(summaryVar.set)
+    handle("Loading summary")(getJson[QuizSummary]("/api/quizzes/summary"))(summaryVar.set)
+
+  def handle[A](action: String)(future: Future[A])(onSuccess: A => Unit): Unit =
+    future.onComplete:
+      case Success(value) => onSuccess(value)
+      case Failure(error) =>
+        messageVar.set(s"$action failed: ${errorMessage(error)}")
+
+  def errorMessage(error: Throwable): String =
+    Option(error.getMessage).filter(_.nonEmpty).getOrElse(error.toString)
 
   def getJson[A: Reader](path: String): Future[A] =
     dom.fetch(apiBase + path).toFuture.flatMap(readResponse[A])

@@ -9,10 +9,9 @@ This repository is a minimal quiz web app built as a Scala multi-project. It has
 - The deployed bjornix URLs are:
   - SPA: `http://bjornix.cs.lth.se:8096/quizly`
   - API summary: `http://bjornix.cs.lth.se:8095/api/quizzes/summary`
-- The app asks for a user name and answers to three fixed propositions:
-  - `The war in Ukraine will end within the next year`
-  - `The current prime minister will remain in power after the next election`
-  - `A new nuclear power plant will be operational within the next 10 years`
+- The app asks for a user name and answers to a fixed catalog of propositions.
+  - The catalog is defined in `Quiz.questions` in `common/src/main/scala/quizly/common/Quiz.scala`.
+  - It currently holds 20 Swedish propositions about future events (politics, energy, technology, etc.).
 - Each answer is a radio choice: `true`, `false`, or `No answer yet`.
 - Answers are stored by fixed question id.
 - The SPA shows a per-question summary counting true, false, and no-answer-yet responses.
