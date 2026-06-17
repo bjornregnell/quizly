@@ -1,6 +1,6 @@
 package quizly.client
 
-import quizly.common.{Quiz, QuizQuestionSummary, QuizSummary}
+import quizly.common.{Quiz, QuizQuestionSummary, QuizSummary, User}
 import upickle.default.*
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -24,8 +24,8 @@ object QuizClient:
     s"$scheme//$host:8095"
 
   private val nameVar = Var("")
-  private val answersVar = Var(Map.empty[String, Option[Boolean]])
-  private val quizzesVar = Var(Vector.empty[Quiz])
+  private val answersVar = Var(Quiz.emptyAnswers)
+  private val usersVar = Var(Vector.empty[User])
   private val summaryVar = Var(QuizSummary.empty)
   private val messageVar = Var("Ready")
 
@@ -54,8 +54,8 @@ object QuizClient:
         ),
         div(
           cls := "question-list",
-          Quiz.questions.map: question =>
-            questionRow(question)
+          Quiz.questionRows.map: row =>
+            questionRow(row._1, row._2)
         ),
         div(
           cls := "actions",
@@ -63,7 +63,7 @@ object QuizClient:
           button(
             "Clear answers",
             typ := "button",
-            onClick.mapTo(()) --> (_ => answersVar.set(Map.empty))
+            onClick.mapTo(()) --> (_ => answersVar.set(Quiz.emptyAnswers))
           ),
           button(
             "Refresh",
@@ -81,53 +81,57 @@ object QuizClient:
           children <-- summaryVar.signal.map(_.questions.map(summaryRow))
         )
       ),
-      h2("Stored quizzes"),
+      h2("Stored users"),
       ul(
         cls := "quiz-list",
-        children <-- quizzesVar.signal.map(_.map(quizRow))
+        children <-- usersVar.signal.map(_.map(userRow))
       )
     )
 
-  def quizRow(quiz: Quiz): HtmlElement =
+  def userRow(user: User): HtmlElement =
+    val answerTexts = Quiz.questionRows.map: row =>
+      val answer = user.answers.getOrElse(row._1, None)
+      s"${row._2}: ${answerLabel(answer)}"
+
     li(
       cls := "quiz-row",
       div(
-        strong(quiz.name),
+        strong(user.name),
         span(
-          s" - ${quiz.question} - ${quiz.answer.fold("not answered")(_.toString)}"
+          s" - ${answerTexts.mkString(" - ")}"
         )
       ),
       div(
         cls := "row-actions",
         button(
           "Load",
-          onClick.mapTo(quiz) --> loadQuiz
+          onClick.mapTo(user) --> loadUser
         ),
         button(
           "Delete",
-          onClick.mapTo(quiz) --> deleteQuiz
+          onClick.mapTo(user) --> deleteUser
         )
       )
     )
 
-  def questionRow(question: String): HtmlElement =
-    val answerSignal = answersVar.signal.map(_.getOrElse(question, None))
-    val radioName = s"answer-${Quiz.questions.indexOf(question)}"
+  def questionRow(id: Quiz.Id, question: Quiz.Question): HtmlElement =
+    val answerSignal = answersVar.signal.map(_.getOrElse(id, None))
+    val radioName = s"answer-$id"
 
     label(
       cls := "question-row",
       span(cls := "question-text", question),
       span(
         cls := "radio-group",
-        answerRadio(radioName, question, Some(true), "true", answerSignal),
-        answerRadio(radioName, question, Some(false), "false", answerSignal),
-        answerRadio(radioName, question, None, "No answer yet", answerSignal)
+        answerRadio(radioName, id, Some(true), "true", answerSignal),
+        answerRadio(radioName, id, Some(false), "false", answerSignal),
+        answerRadio(radioName, id, None, "No answer yet", answerSignal)
       )
     )
 
   def answerRadio(
       radioName: String,
-      question: String,
+      id: Quiz.Id,
       value: Option[Boolean],
       labelText: String,
       answerSignal: Signal[Option[Boolean]]
@@ -138,7 +142,7 @@ object QuizClient:
         typ := "radio",
         nameAttr := radioName,
         checked <-- answerSignal.map(_ == value),
-        onInput.mapTo(value) --> (answer => setAnswer(question, answer))
+        onInput.mapTo(value) --> (answer => setAnswer(id, answer))
       ),
       span(labelText)
     )
@@ -155,60 +159,48 @@ object QuizClient:
       )
     )
 
-  private def loadQuiz(quiz: Quiz): Unit =
-    val answersByQuestion = quizzesVar
-      .now()
-      .filter(_.name == quiz.name)
-      .map(quiz => quiz.question -> quiz.answer)
-      .toMap
+  def answerLabel(answer: Option[Boolean]): String =
+    answer.fold("not answered")(_.toString)
 
-    nameVar.set(quiz.name)
-    answersVar.set(answersByQuestion)
-    messageVar.set(s"Loaded ${quiz.name}")
+  private def loadUser(user: User): Unit =
+    nameVar.set(user.name)
+    answersVar.set(Quiz.normalizeAnswers(user.answers))
+    messageVar.set(s"Loaded ${user.name}")
 
-  private def setAnswer(question: String, answer: Option[Boolean]): Unit =
-    answersVar.update(_ + (question -> answer))
+  private def setAnswer(id: Quiz.Id, answer: Option[Boolean]): Unit =
+    answersVar.update(_ + (id -> answer))
 
   private def saveAnswers(): Unit =
     val name = nameVar.now().trim
 
     if name.isEmpty then messageVar.set("Name is required")
     else
-      val answers = answersVar.now()
-      val quizzes = Quiz.questions.map: question =>
-        Quiz(name, question, answers.getOrElse(question, None))
+      val user = User(name, Quiz.normalizeAnswers(answersVar.now()))
 
-      Future
-        .sequence(
-          quizzes.map(quiz => postJson[Quiz, Quiz]("/api/quizzes", quiz))
-        )
-        .foreach: saved =>
-          answersVar.set(saved.map(quiz => quiz.question -> quiz.answer).toMap)
-          refreshAll()
-          messageVar.set(s"Saved ${saved.size} answer(s) for $name")
+      postJson[User, User]("/api/quizzes", user).foreach: saved =>
+        answersVar.set(Quiz.normalizeAnswers(saved.answers))
+        refreshAll()
+        messageVar.set(s"Saved answers for $name")
 
-  private def deleteQuiz(quiz: Quiz): Unit =
+  private def deleteUser(user: User): Unit =
     val query =
-      s"name=${js.URIUtils.encodeURIComponent(quiz.name)}&question=${js.URIUtils.encodeURIComponent(quiz.question)}"
+      s"name=${js.URIUtils.encodeURIComponent(user.name)}"
 
     postEmpty(s"/api/quizzes/delete?$query").foreach: _ =>
-      if nameVar.now() == quiz.name then
-        answersVar.update(_ + (quiz.question -> None))
-      if nameVar.now() == quiz.name && quizzesVar
-          .now()
-          .count(_.name == quiz.name) <= 1
-      then nameVar.set("")
+      if nameVar.now() == user.name then
+        nameVar.set("")
+        answersVar.set(Quiz.emptyAnswers)
       refreshAll()
-      messageVar.set(s"Deleted ${quiz.name} - ${quiz.question}")
+      messageVar.set(s"Deleted ${user.name}")
 
   private def refreshAll(): Unit =
     refreshQuizzes()
     refreshSummary()
 
   private def refreshQuizzes(): Unit =
-    getJson[Vector[Quiz]]("/api/quizzes").foreach: quizzes =>
-      quizzesVar.set(quizzes)
-      messageVar.set(s"Loaded ${quizzes.size} quiz record(s)")
+    getJson[Vector[User]]("/api/quizzes").foreach: users =>
+      usersVar.set(users)
+      messageVar.set(s"Loaded ${users.size} user record(s)")
 
   private def refreshSummary(): Unit =
     getJson[QuizSummary]("/api/quizzes/summary").foreach(summaryVar.set)

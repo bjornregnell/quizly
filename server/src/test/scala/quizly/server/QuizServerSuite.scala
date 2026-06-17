@@ -1,6 +1,6 @@
 package quizly.server
 
-import quizly.common.{Quiz, QuizSummary}
+import quizly.common.{Quiz, QuizSummary, User}
 import upickle.default.*
 
 import java.net.{URI, URLEncoder}
@@ -29,59 +29,67 @@ class QuizServerSuite extends munit.FunSuite:
       assertEquals(response.statusCode(), 204)
       assertEquals(response.headers().firstValue("access-control-allow-origin").orElse(""), "*")
 
-  test("GET /api/quizzes returns stored quizzes"):
+  test("GET /api/quizzes returns stored users"):
     withRunningServer: base =>
-      val quiz = Quiz("Ada", Quiz.defaultQuestion, Some(true))
-      postJson(base, "/api/quizzes", write(quiz))
+      val user = User("Ada", Quiz.emptyAnswers + (Quiz.defaultQuestionId -> Some(true)))
+      postJson(base, "/api/quizzes", write(user))
 
       val response = get(base, "/api/quizzes")
 
       assertOkJson(response)
-      assertEquals(read[Vector[Quiz]](response.body()), Vector(quiz))
+      assertEquals(read[Vector[User]](response.body()), Vector(user))
 
   test("GET /api/quizzes/summary returns per-question counts"):
     withRunningServer: base =>
-      postJson(base, "/api/quizzes", write(Quiz("Ada", Quiz.defaultQuestion, Some(true))))
-      postJson(base, "/api/quizzes", write(Quiz("Grace", Quiz.governmentQuestion, Some(false))))
-      postJson(base, "/api/quizzes", write(Quiz("Linus", Quiz.governmentQuestion, None)))
+      postJson(
+        base,
+        "/api/quizzes",
+        write(User("Ada", Quiz.emptyAnswers + (Quiz.defaultQuestionId -> Some(true))))
+      )
+      postJson(
+        base,
+        "/api/quizzes",
+        write(User("Grace", Quiz.emptyAnswers + (Quiz.governmentQuestionId -> Some(false))))
+      )
 
       val response = get(base, "/api/quizzes/summary")
 
       assertOkJson(response)
       val summary = read[QuizSummary](response.body())
-      assertEquals(summary.questions.find(_.question == Quiz.defaultQuestion).map(_.trueAnswers), Some(1))
-      assertEquals(summary.questions.find(_.question == Quiz.governmentQuestion).map(_.falseAnswers), Some(1))
-      assertEquals(summary.questions.find(_.question == Quiz.governmentQuestion).map(_.noAnswerYet), Some(1))
+      assertEquals(summary.questions.find(_.id == Quiz.defaultQuestionId).map(_.trueAnswers), Some(1))
+      assertEquals(summary.questions.find(_.id == Quiz.defaultQuestionId).map(_.noAnswerYet), Some(1))
+      assertEquals(summary.questions.find(_.id == Quiz.governmentQuestionId).map(_.falseAnswers), Some(1))
+      assertEquals(summary.questions.find(_.id == Quiz.governmentQuestionId).map(_.noAnswerYet), Some(1))
 
-  test("GET /api/quizzes/{name} returns the named user's quizzes"):
+  test("GET /api/quizzes/{name} returns the named user"):
     withRunningServer: base =>
-      val adaQuiz = Quiz("Ada Lovelace", Quiz.defaultQuestion, Some(true))
-      postJson(base, "/api/quizzes", write(adaQuiz))
-      postJson(base, "/api/quizzes", write(Quiz("Grace Hopper", Quiz.defaultQuestion, Some(false))))
+      val ada = User("Ada Lovelace", Quiz.emptyAnswers + (Quiz.defaultQuestionId -> Some(true)))
+      postJson(base, "/api/quizzes", write(ada))
+      postJson(base, "/api/quizzes", write(User("Grace Hopper", Quiz.emptyAnswers)))
 
       val response = get(base, s"/api/quizzes/${encode("Ada Lovelace")}")
 
       assertOkJson(response)
-      assertEquals(read[Vector[Quiz]](response.body()), Vector(adaQuiz))
+      assertEquals(read[User](response.body()), ada)
 
-  test("POST /api/quizzes creates a quiz"):
+  test("POST /api/quizzes creates a user"):
     withRunningServer: base =>
-      val quiz = Quiz("Ada", Quiz.defaultQuestion, Some(true))
+      val user = User("Ada", Quiz.emptyAnswers + (Quiz.defaultQuestionId -> Some(true)))
 
-      val response = postJson(base, "/api/quizzes", write(quiz))
+      val response = postJson(base, "/api/quizzes", write(user))
 
       assertOkJson(response)
-      assertEquals(read[Quiz](response.body()), quiz)
+      assertEquals(read[User](response.body()), user)
 
-  test("POST /api/quizzes/delete deletes a quiz"):
+  test("POST /api/quizzes/delete deletes a user"):
     withRunningServer: base =>
-      val quiz = Quiz("Ada", Quiz.defaultQuestion, Some(true))
-      postJson(base, "/api/quizzes", write(quiz))
+      val user = User("Ada", Quiz.emptyAnswers + (Quiz.defaultQuestionId -> Some(true)))
+      postJson(base, "/api/quizzes", write(user))
 
-      val response = post(base, s"/api/quizzes/delete?name=${encode(quiz.name)}&question=${encode(quiz.question)}")
+      val response = post(base, s"/api/quizzes/delete?name=${encode(user.name)}")
 
       assertOkJson(response)
-      assertEquals(read[Quiz](response.body()), quiz)
+      assertEquals(read[User](response.body()), user)
 
   test("GET /quizly redirects to /quizly/"):
     withRunningServer: base =>

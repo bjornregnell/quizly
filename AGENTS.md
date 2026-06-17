@@ -13,9 +13,10 @@ This repository is a minimal quiz web app built as a Scala multi-project. It has
   - `The war will end in 2026`
   - `The current government will remain in power after the election`
 - Each answer is a radio choice: `true`, `false`, or `No answer yet`.
+- Answers are stored by fixed question id.
 - The SPA shows a per-question summary counting true, false, and no-answer-yet responses.
-- Stored quiz records can be loaded or deleted from the SPA.
-- Data is in memory only. Restarting the server clears all quiz records.
+- Stored user records can be loaded or deleted from the SPA.
+- Data is in memory only. Restarting the server clears all user records.
 
 ## Project Layout
 
@@ -79,9 +80,12 @@ codex mcp add quizly-metals --url "$(python3 -c 'import json; print(json.load(op
 
 The shared model lives in `common/src/main/scala/quizly/common/Quiz.scala`.
 
-- `Quiz(name: String, question: String, answer: Option[Boolean])`
-- `None` means no answer has been given yet.
-- `Quiz.questions` is the authoritative list of fixed questions/propositions used by client and server.
+- `Quiz` is the authoritative fixed-question catalog.
+- `Quiz.Id` is an alias for `Int`.
+- `Quiz.Question` is an alias for `String`.
+- `Quiz.questions: Map[Quiz.Id, Quiz.Question]` maps question ids to propositions.
+- `User(name: String, answers: Map[Quiz.Id, Option[Boolean]])`
+- `None` means no answer has been given yet for that question id.
 - uPickle `ReadWriter` instances are generated in the companion objects.
 
 ## Server Architecture
@@ -97,13 +101,13 @@ The server entry point is `quizly.server.QuizServer`.
   - `GET /quizly/` and `/quizly/index.html` serve `index.html`
   - `GET /assets/main.js` serves `main.js`
 - API routes:
-  - `GET /api/quizzes` returns all quiz records.
+  - `GET /api/quizzes` returns all user records.
   - `GET /api/quizzes/summary` returns per-question counts.
-  - `GET /api/quizzes/{name}` returns quiz records for one name.
-  - `POST /api/quizzes` creates or replaces one quiz record from a JSON `Quiz`.
-  - `POST /api/quizzes/delete?name=...&question=...` deletes one quiz record.
-- The server uses `ConcurrentHashMap[String, Quiz]`.
-- The internal key is `name + "\u0000" + question`, so one name can have one answer per fixed question.
+  - `GET /api/quizzes/{name}` returns one user record.
+  - `POST /api/quizzes` creates or replaces one user record from a JSON `User`.
+  - `POST /api/quizzes/delete?name=...` deletes one user record.
+- The server uses `ConcurrentHashMap[String, User]`.
+- The internal key is the trimmed user name, so one name has one answer map for all fixed questions.
 - The tiny router handles `GET`, `POST`, and `OPTIONS`; `HEAD` is not implemented.
 - CORS is currently permissive with `Access-Control-Allow-Origin: *`.
 
@@ -115,8 +119,8 @@ The SPA entry point is `quizly.client.QuizClient`.
 - It computes the API base from the current browser scheme/host and hardcodes API port `8095`.
 - It stores UI state in Laminar `Var`s:
   - name
-  - answers by question
-  - stored quizzes
+  - answers by question id
+  - stored users
   - summary
   - message
 - It communicates with the API using `fetch`.

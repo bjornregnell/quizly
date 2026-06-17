@@ -1,6 +1,6 @@
 package quizly.server
 
-import quizly.common.{Quiz, QuizQuestionSummary, QuizSummary}
+import quizly.common.{Quiz, QuizQuestionSummary, QuizSummary, User}
 import upickle.default.*
 
 import java.net.URLDecoder
@@ -69,7 +69,7 @@ object QuizServer:
     Option(dir).getOrElse(Paths.get(".")).toAbsolutePath.normalize()
 
 final class QuizHandler(staticDir: Path) extends Handler.Abstract:
-  private val quizzes = ConcurrentHashMap[String, Quiz]()
+  private val users = ConcurrentHashMap[String, User]()
   val quizPath = "/api/quizzes"
   val quizByNamePrefix = s"$quizPath/"
 
@@ -87,11 +87,11 @@ final class QuizHandler(staticDir: Path) extends Handler.Abstract:
         true
 
       case ("GET", `quizPath`) =>
-        val values = quizzes
+        val values = users
           .values()
           .asScala
           .toVector
-          .sortBy(quiz => (quiz.name.toLowerCase, quiz.question))
+          .sortBy(user => user.name.toLowerCase)
         writeJson(response, callback, values)
         true
 
@@ -101,39 +101,32 @@ final class QuizHandler(staticDir: Path) extends Handler.Abstract:
 
       case ("GET", path) if path.startsWith(quizByNamePrefix) =>
         val name = decodePathSegment(path.stripPrefix(quizByNamePrefix))
-        val values = quizzes
-          .values()
-          .asScala
-          .toVector
-          .filter(_.name == name)
-          .sortBy(_.question)
 
-        if values.nonEmpty then writeJson(response, callback, values)
-        else
-          writeError(
-            response,
-            callback,
-            HttpStatus.NOT_FOUND_404,
-            s"No quizzes for '$name'"
-          )
+        Option(users.get(name)) match
+          case Some(user) =>
+            writeJson(response, callback, user)
+          case None =>
+            writeError(
+              response,
+              callback,
+              HttpStatus.NOT_FOUND_404,
+              s"No user for '$name'"
+            )
         true
 
       case ("POST", `quizPath`) =>
-        readJsonBody[Quiz](request) match
-          case Success(quiz) =>
-            normalize(quiz) match
+        readJsonBody[User](request) match
+          case Success(user) =>
+            normalize(user) match
               case Some(normalized) =>
-                quizzes.put(
-                  quizKey(normalized.name, normalized.question),
-                  normalized
-                )
+                users.put(normalized.name, normalized)
                 writeJson(response, callback, normalized)
               case None =>
                 writeError(
                   response,
                   callback,
                   HttpStatus.BAD_REQUEST_400,
-                  "Quiz name is required"
+                  "User name is required"
                 )
           case Failure(error) =>
             writeError(
@@ -148,26 +141,24 @@ final class QuizHandler(staticDir: Path) extends Handler.Abstract:
         val params = Request.extractQueryParameters(request)
         val nameOpt =
           Option(params.getValue("name")).map(_.trim).filter(_.nonEmpty)
-        val questionOpt =
-          Option(params.getValue("question")).map(_.trim).filter(_.nonEmpty)
 
-        (nameOpt, questionOpt) match
-          case (Some(name), Some(question)) =>
-            Option(quizzes.remove(quizKey(name, question))) match
-              case Some(quiz) => writeJson(response, callback, quiz)
+        nameOpt match
+          case Some(name) =>
+            Option(users.remove(name)) match
+              case Some(user) => writeJson(response, callback, user)
               case None       =>
                 writeError(
                   response,
                   callback,
                   HttpStatus.NOT_FOUND_404,
-                  s"No quiz for '$name' and '$question'"
+                  s"No user for '$name'"
                 )
-          case _ =>
+          case None =>
             writeError(
               response,
               callback,
               HttpStatus.BAD_REQUEST_400,
-              "Quiz name and question are required"
+              "User name is required"
             )
         true
 
@@ -190,33 +181,27 @@ final class QuizHandler(staticDir: Path) extends Handler.Abstract:
         writeError(response, callback, HttpStatus.NOT_FOUND_404, "not found")
         true
 
-  def normalize(quiz: Quiz): Option[Quiz] =
-    val name = quiz.name.trim
-    val question = quiz.question.trim match
-      case ""    => Quiz.defaultQuestion
-      case value => value
+  def normalize(user: User): Option[User] =
+    val name = user.name.trim
+    val answers = Quiz.normalizeAnswers(user.answers)
 
-    Option.when(name.nonEmpty)(quiz.copy(name = name, question = question))
-
-  def quizKey(name: String, question: String): String =
-    s"$name\u0000$question"
+    Option.when(name.nonEmpty)(user.copy(name = name, answers = answers))
 
   def summarizeQuizzes(): QuizSummary =
-    val questions =
-      (Quiz.questions ++ quizzes.values().asScala.map(_.question)).distinct
-    val rows = quizzes
+    val emptyRows = Quiz.questionRows.map: row =>
+      QuizQuestionSummary.empty(row._1, row._2)
+
+    val rows = users
       .values()
       .asScala
-      .foldLeft(questions.map(QuizQuestionSummary.empty)):
-        case (rows, quiz) =>
+      .foldLeft(emptyRows):
+        case (rows, user) =>
           rows.map: row =>
-            if row.question == quiz.question then
-              quiz.answer match
-                case Some(true)  => row.copy(trueAnswers = row.trueAnswers + 1)
-                case Some(false) =>
-                  row.copy(falseAnswers = row.falseAnswers + 1)
-                case None => row.copy(noAnswerYet = row.noAnswerYet + 1)
-            else row
+            user.answers.getOrElse(row.id, None) match
+              case Some(true)  => row.copy(trueAnswers = row.trueAnswers + 1)
+              case Some(false) =>
+                row.copy(falseAnswers = row.falseAnswers + 1)
+              case None => row.copy(noAnswerYet = row.noAnswerYet + 1)
 
     QuizSummary(rows)
 
