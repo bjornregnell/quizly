@@ -168,9 +168,11 @@ object QuizClient:
     )
 
   def summaryRow(summary: QuizQuestionSummary): HtmlElement =
+    val question = Quiz.questions.getOrElse(summary.id, s"Question ${summary.id}")
+
     div(
       cls := "summary-row",
-      div(strong(summary.question)),
+      div(strong(question)),
       div(
         cls := "summary-counts",
         span(s"True: ${summary.trueAnswers}"),

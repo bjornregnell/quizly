@@ -217,8 +217,7 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
     Option.when(name.nonEmpty)(user.copy(name = name, answers = answers))
 
   def summarizeQuizzes(): QuizSummary =
-    val emptyRows = Quiz.questionRows.map: row =>
-      QuizQuestionSummary.empty(row._1, row._2)
+    val emptyRows = Quiz.questionIds.map(QuizQuestionSummary.empty)
 
     val rows = users
       .values()

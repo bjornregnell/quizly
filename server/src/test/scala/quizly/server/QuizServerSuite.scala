@@ -72,6 +72,7 @@ class QuizServerSuite extends munit.FunSuite:
       val response = get(base, "/api/quizzes/summary")
 
       assertOkJson(response)
+      assert(!response.body().contains("\"question\":"))
       val summary = read[QuizSummary](response.body())
       assertEquals(summary.questions.find(_.id == warQuestionId).map(_.trueAnswers), Some(1))
       assertEquals(summary.questions.find(_.id == warQuestionId).map(_.noAnswerYet), Some(1))

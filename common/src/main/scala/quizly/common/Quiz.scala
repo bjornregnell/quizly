@@ -6,7 +6,6 @@ case class User(name: String, answers: Map[Quiz.Id, Option[Boolean]])
 
 case class QuizQuestionSummary(
   id: Quiz.Id,
-  question: Quiz.Question,
   trueAnswers: Int,
   falseAnswers: Int,
   noAnswerYet: Int
@@ -21,8 +20,9 @@ object Quiz:
   type Question = String
 
   val questions: Map[Id, Question] = Map(
-    1 -> "The war will end in 2026",
-    2 -> "The current government will remain in power after the election"
+    1 -> "The war in Ukraine will end within the next year",
+    2 -> "The current prime minister will remain in power after the next election",
+    3 -> "A new nuclear power plant will be operational within the next 10 years",
   )
 
   val questionIds: Vector[Id] =
@@ -41,15 +41,14 @@ object User:
   given ReadWriter[User] = macroRW
 
 object QuizQuestionSummary:
-  def empty(id: Quiz.Id, question: Quiz.Question): QuizQuestionSummary =
-    QuizQuestionSummary(id, question, trueAnswers = 0, falseAnswers = 0, noAnswerYet = 0)
+  def empty(id: Quiz.Id): QuizQuestionSummary =
+    QuizQuestionSummary(id, trueAnswers = 0, falseAnswers = 0, noAnswerYet = 0)
 
   given ReadWriter[QuizQuestionSummary] = macroRW
 
 object QuizSummary:
   val empty = QuizSummary:
-    Quiz.questionRows.map: row =>
-      QuizQuestionSummary.empty(row._1, row._2)
+    Quiz.questionIds.map(QuizQuestionSummary.empty)
 
   given ReadWriter[QuizSummary] = macroRW
 

@@ -107,7 +107,7 @@ The server entry point is `quizly.server.QuizServer`.
 - API routes:
   - `GET /api/config` returns `ServerConfig(debug: Boolean)`.
   - `GET /api/quizzes` returns all user records.
-  - `GET /api/quizzes/summary` returns per-question counts.
+  - `GET /api/quizzes/summary` returns per-question-id counts.
   - `GET /api/quizzes/{name}` returns one user record.
   - `POST /api/quizzes` creates or replaces one user record from a JSON `User`.
   - `POST /api/quizzes/delete?name=...` deletes one user record.
@@ -131,6 +131,7 @@ The SPA entry point is `quizly.client.QuizClient`.
 - The "Stored users" debug section is shown only when `/api/config` returns `debug = true`.
 - It communicates with the API using `fetch`.
 - JSON is encoded/decoded with uPickle and the shared model from `common`.
+- Summary rows carry question ids; the SPA looks up display text from `Quiz.questions`.
 
 ## Local Run Workflow
 
