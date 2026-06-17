@@ -229,4 +229,8 @@ ssh bjornix screen -S quizly -X quit
 - The jar does not currently embed `index.html` or `main.js`; they are deployed beside the jar and read from `STATIC_DIR`.
 - If the SPA HTML loads but the app does not start, check that `/assets/main.js` returns `200 OK`.
 - If API calls fail from the SPA, remember that the client currently assumes the API is on the same host at port `8095`.
-- Remote deployment has been verified with Jetty responding on bjornix ports `8095` and `8096`.
+- Remote deployment was last verified on 2026-06-17 with Jetty on bjornix responding `200` for:
+  - `http://bjornix.cs.lth.se:8095/api/quizzes/summary`
+  - `http://bjornix.cs.lth.se:8096/quizly/`
+  - `http://bjornix.cs.lth.se:8096/assets/main.js`
+  - `http://bjornix.cs.lth.se:8095/api/config` returned `{"debug":false}` (production mode, no `--debug`).
