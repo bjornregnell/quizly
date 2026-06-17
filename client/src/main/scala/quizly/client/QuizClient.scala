@@ -12,6 +12,10 @@ import com.raquo.laminar.api.L.{*, given}
 import org.scalajs.dom
 
 object QuizClient:
+  val maxNameLength = 42
+  val nameRuleMessage =
+    s"Use letters, digits, '-' and spaces only; max $maxNameLength characters."
+
   val apiBase =
     val location = dom.window.location
     val host =
@@ -24,6 +28,7 @@ object QuizClient:
     s"$scheme//$host:8095"
 
   private val nameVar = Var("")
+  private val nameErrorVar = Var(Option.empty[String])
   private val answersVar = Var(Quiz.emptyAnswers)
   private val usersVar = Var(Vector.empty[User])
   private val summaryVar = Var(QuizSummary.empty)
@@ -44,12 +49,19 @@ object QuizClient:
         cls := "editor",
         onSubmit.preventDefault.mapTo(()) --> (_ => saveAnswers()),
         label(
-          "Name",
+          span(
+            cls := "field-label",
+            span("Name"),
+            span(
+              cls := "field-error",
+              child.text <-- nameErrorVar.signal.map(_.getOrElse(""))
+            )
+          ),
           input(
             typ := "text",
             placeholder := "you name",
             value <-- nameVar.signal,
-            onInput.mapToValue --> nameVar
+            onInput.mapToValue --> (value => updateName(value))
           )
         ),
         div(
@@ -162,10 +174,25 @@ object QuizClient:
   def answerLabel(answer: Option[Boolean]): String =
     answer.fold("not answered")(_.toString)
 
+  def isValidNameChar(char: Char): Boolean =
+    char.isLetterOrDigit || char == '-' || char == ' '
+
+  def normalizeNameInput(name: String): String =
+    name.filter(isValidNameChar).take(maxNameLength)
+
+  def nameError(name: String): Option[String] =
+    Option.when(name.length > maxNameLength || name.exists(char => !isValidNameChar(char))):
+      nameRuleMessage
+
   private def loadUser(user: User): Unit =
     nameVar.set(user.name)
+    nameErrorVar.set(None)
     answersVar.set(Quiz.normalizeAnswers(user.answers))
     messageVar.set(s"Loaded ${user.name}")
+
+  private def updateName(name: String): Unit =
+    nameErrorVar.set(nameError(name))
+    nameVar.set(normalizeNameInput(name))
 
   private def setAnswer(id: Quiz.Id, answer: Option[Boolean]): Unit =
     answersVar.update(_ + (id -> answer))
