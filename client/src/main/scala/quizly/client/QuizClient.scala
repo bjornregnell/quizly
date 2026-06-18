@@ -80,7 +80,7 @@ object QuizClient:
         p(
           cls := "summary-respondents",
           child.text <-- summaryVar.signal.map: summary =>
-            s"Users who have answered at least one question: ${summary.respondents}"
+            s"Number of users who have answered at least one question: ${summary.respondents}"
         ),
         div(
           cls := "summary-list",
