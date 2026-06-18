@@ -38,7 +38,7 @@ object Quiz:
   type Id = Int
   type Question = String
 
-  private var id = 1
+  private var id = 0
   def nextId(): Int = {id +=1; id}
 
   val questions: Map[Id, Question] = Map(
