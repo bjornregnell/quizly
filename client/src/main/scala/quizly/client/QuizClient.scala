@@ -65,8 +65,10 @@ object QuizClient:
         div(
           cls := "actions",
           button(
-            "Clear answers",
+            "Danger: Clear all my answers",
             typ := "button",
+            cls := "danger",
+            disabled <-- answersVar.signal.map(_.values.forall(_.isEmpty)),
             onClick.mapTo(()) --> (_ => clearAnswers())
           )
         )
