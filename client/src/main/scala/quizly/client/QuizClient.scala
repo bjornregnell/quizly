@@ -128,7 +128,7 @@ object QuizClient:
 
     label(
       cls := "question-row",
-      span(cls := "question-text", question),
+      span(cls := "question-text", s"$id. $question"),
       span(
         cls := "radio-group",
         answerRadio(radioName, id, Some(true), "true", answerSignal),
@@ -170,7 +170,7 @@ object QuizClient:
         cls := List("summary-question", majorityClass(summary))
           .filter(_.nonEmpty)
           .mkString(" "),
-        strong(question)
+        strong(s"${summary.id}. $question")
       ),
       div(
         cls := "summary-counts",
