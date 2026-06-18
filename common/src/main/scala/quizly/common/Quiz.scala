@@ -22,10 +22,12 @@ object QuizQuestionSummary:
   given ReadWriter[QuizQuestionSummary] = macroRW
 
 
-case class QuizSummary(questions: Vector[QuizQuestionSummary])
+case class QuizSummary(questions: Vector[QuizQuestionSummary], respondents: Int)
 object QuizSummary:
-  val empty = QuizSummary:
-    Quiz.questionIds.map(QuizQuestionSummary.empty)
+  val empty = QuizSummary(
+    Quiz.questionIds.map(QuizQuestionSummary.empty),
+    respondents = 0
+  )
 
   given ReadWriter[QuizSummary] = macroRW
 

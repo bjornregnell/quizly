@@ -77,6 +77,11 @@ object QuizClient:
       div(
         cls := "summary",
         h2("Summary"),
+        p(
+          cls := "summary-respondents",
+          child.text <-- summaryVar.signal.map: summary =>
+            s"Users who have answered at least one question: ${summary.respondents}"
+        ),
         div(
           cls := "summary-list",
           children <-- summaryVar.signal.map(_.questions.map(summaryRow))

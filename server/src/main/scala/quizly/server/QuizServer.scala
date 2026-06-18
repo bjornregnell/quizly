@@ -215,10 +215,9 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
 
   def summarizeQuizzes(): QuizSummary =
     val emptyRows = Quiz.questionIds.map(QuizQuestionSummary.empty)
+    val allUsers = users.values().asScala.toVector
 
-    val rows = users
-      .values()
-      .asScala
+    val rows = allUsers
       .foldLeft(emptyRows):
         case (rows, user) =>
           rows.map: row =>
@@ -228,7 +227,9 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
                 row.copy(falseAnswers = row.falseAnswers + 1)
               case None => row.copy(noAnswerYet = row.noAnswerYet + 1)
 
-    QuizSummary(rows)
+    val respondents = allUsers.count(_.answers.values.exists(_.isDefined))
+
+    QuizSummary(rows, respondents)
 
   def readJsonBody[A: Reader](request: Request): Try[A] =
     Try:
