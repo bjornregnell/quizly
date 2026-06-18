@@ -195,6 +195,11 @@ final class QuizHandler(staticDir: Path, debug: Boolean = false)
         writeStaticFile(response, callback, "index.html")
         true
 
+      case ("GET", path)
+          if path == "/quizly/assessment" || path == "/quizly/assessment.html" =>
+        writeStaticFile(response, callback, "assessment.html")
+        true
+
       case ("GET", path) if path.startsWith("/assets/") =>
         writeStaticFile(response, callback, path.stripPrefix("/assets/"))
         true

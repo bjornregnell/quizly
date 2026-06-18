@@ -104,6 +104,7 @@ The server entry point is `quizly.server.QuizServer`.
 - Static routes:
   - `GET /quizly` redirects to `/quizly/`
   - `GET /quizly/` and `/quizly/index.html` serve `index.html`
+  - `GET /quizly/assessment` and `/quizly/assessment.html` serve `assessment.html` (a static one-page proposition assessment kept at the repo root)
   - `GET /assets/main.js` serves `main.js`
 - API routes:
   - `GET /api/config` returns `ServerConfig(debug: Boolean)`.

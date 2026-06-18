@@ -170,6 +170,14 @@ class QuizServerSuite extends munit.FunSuite:
       assertEquals(response.headers().firstValue("content-type").orElse(""), "text/javascript; charset=utf-8")
       assertEquals(response.body(), mainJs)
 
+  test("GET /quizly/assessment serves the assessment page"):
+    withRunningServer: base =>
+      val response = get(base, "/quizly/assessment")
+
+      assertEquals(response.statusCode(), 200)
+      assertEquals(response.headers().firstValue("content-type").orElse(""), "text/html; charset=utf-8")
+      assertEquals(response.body(), assessmentHtml)
+
   def withRunningServer(run: URI => Unit): Unit =
     withRunningServer(debug = false, run)
 
@@ -180,6 +188,7 @@ class QuizServerSuite extends munit.FunSuite:
     val staticDir = Files.createTempDirectory("quizly-server-test")
     Files.writeString(staticDir.resolve("index.html"), indexHtml, StandardCharsets.UTF_8)
     Files.writeString(staticDir.resolve("main.js"), mainJs, StandardCharsets.UTF_8)
+    Files.writeString(staticDir.resolve("assessment.html"), assessmentHtml, StandardCharsets.UTF_8)
 
     val server = Server()
     val connector = ServerConnector(server)
@@ -222,7 +231,9 @@ class QuizServerSuite extends munit.FunSuite:
   def deleteStaticDir(staticDir: Path): Unit =
     Files.deleteIfExists(staticDir.resolve("index.html"))
     Files.deleteIfExists(staticDir.resolve("main.js"))
+    Files.deleteIfExists(staticDir.resolve("assessment.html"))
     Files.deleteIfExists(staticDir)
 
   val indexHtml = "<!doctype html><main id=\"app\"></main>"
   val mainJs = "console.log('quizly test');"
+  val assessmentHtml = "<!doctype html><h1>assessment</h1>"

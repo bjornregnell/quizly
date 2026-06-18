@@ -7,6 +7,7 @@ jar_path="server/target/scala-3.9.0-RC1/quizly.jar"
 client_js="client/target/scala-3.9.0-RC1/quizly-client-fastopt/main.js"
 client_map="$client_js.map"
 client_index="client/index.html"
+assessment_html="assessment.html"
 remote_host="bjornix"
 remote_app_dir="/home/bjornr/quizly"
 remote_jar="$remote_app_dir/quizly.jar"
@@ -32,7 +33,12 @@ if [[ ! -f "$client_js" ]]; then
   exit 1
 fi
 
-files=("$jar_path" "$client_index" "$client_js")
+if [[ ! -f "$assessment_html" ]]; then
+  echo "Could not find assessment page at $assessment_html" >&2
+  exit 1
+fi
+
+files=("$jar_path" "$client_index" "$client_js" "$assessment_html")
 if [[ -f "$client_map" ]]; then
   files+=("$client_map")
 fi

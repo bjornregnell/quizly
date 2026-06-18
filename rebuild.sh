@@ -12,6 +12,7 @@ server_classpath_file="server/target/server-classpath.txt"
 client_js="client/target/scala-3.9.0-RC1/quizly-client-fastopt/main.js"
 client_map="$client_js.map"
 client_index="client/index.html"
+assessment_html="assessment.html"
 static_dir="$server_target"
 runtime_dir="${QUIZLY_RUNTIME_DIR:-tmp}"
 pid_file="$runtime_dir/quizly-pid"
@@ -166,6 +167,7 @@ fi
 mkdir -p "$static_dir"
 cp "$client_index" "$static_dir/index.html"
 cp "$client_js" "$static_dir/main.js"
+cp "$assessment_html" "$static_dir/assessment.html"
 if [[ -f "$client_map" ]]; then
   cp "$client_map" "$static_dir/main.js.map"
 fi

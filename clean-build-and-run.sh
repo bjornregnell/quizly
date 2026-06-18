@@ -9,6 +9,7 @@ server_jar="server/target/scala-3.9.0-RC1/quizly.jar"
 client_js="client/target/scala-3.9.0-RC1/quizly-client-fastopt/main.js"
 client_map="$client_js.map"
 client_index="client/index.html"
+assessment_html="assessment.html"
 static_dir="$(dirname "$server_jar")"
 
 api_pid=""
@@ -42,6 +43,7 @@ fi
 
 cp "$client_index" "$static_dir/index.html"
 cp "$client_js" "$static_dir/main.js"
+cp "$assessment_html" "$static_dir/assessment.html"
 if [[ -f "$client_map" ]]; then
   cp "$client_map" "$static_dir/main.js.map"
 fi
