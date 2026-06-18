@@ -183,6 +183,15 @@ object QuizClient:
   def answerLabel(answer: Option[Boolean]): String =
     answer.fold("not answered")(_.toString)
 
+  def savedAtText(): String =
+    val d = new js.Date()
+    def pad(n: Double): String =
+      val i = n.toInt
+      if i < 10 then s"0$i" else i.toString
+    val date = s"${d.getFullYear().toInt}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}"
+    val time = s"${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}"
+    s"$date, $time"
+
   private def loadUser(user: User): Unit =
     userIdVar.set(user.id)
     answersVar.set(Quiz.normalizeAnswers(user.answers))
@@ -202,7 +211,7 @@ object QuizClient:
 
     handle("Saving answers")(postJson[User, User]("/api/quizzes", user)): saved =>
       userIdVar.set(saved.id)
-      messageVar.set("Answers saved")
+      messageVar.set(s"Your updates were saved at ${savedAtText()}")
 
   private def deleteUser(user: User): Unit =
     val query =
