@@ -38,27 +38,29 @@ object Quiz:
   type Id = Int
   type Question = String
 
+  private var id = 1
+  def nextId(): Int = {id +=1; id}
+
   val questions: Map[Id, Question] = Map(
-    1 -> "Kriget i Ukraina kommer att vara över inom ett år",
-    2 -> "Sveriges nuvarande statsministern kommer att behålla makten efter nästa val",
-    3 -> "Liberalerna kommer att lämna riksdagen i nästa val",
-    4 -> "Ett nybyggt kärnkraftverk kommer att vara i drift i Sverige inom de närmaste 10 åren",
-    5 -> "Sverige kommer att införa euron inom 20 år",
-    6 -> "Elpriset i Skåne kommer att vara lägre år 2030 än idag",
-    7 -> "Försäljningen av bensinbilar kommer att förbjudas i Sverige före 2035",
-    8 -> "En svensk region kommer att införa helt avgiftsfri kollektivtrafik permanent före 2035",
-    9 -> "Kontanter kommer att användas av mindre än 1 % av svenskarna i vardagen år 2035",
-    10 -> "Minst ett svenskt universitet kommer att använda AI som obligatorisk examinator inom 10 år",
-    11 -> "Sverige kommer att ha fler registrerade elbilar än bensinbilar före 2035",
-    12 -> "Sverige kommer att bygga fler fängelseplatser än studentbostäder under de kommande 10 åren",
-    13 -> "TikTok kommer att vara förbjudet i Sverige inom 10 år",
-    14 -> "Sverige kommer att ha en kvinnlig statsminister igen före 2035",
-    15 -> "Det kommer att finnas självkörande taxibilar i reguljär trafik i någon svensk stad före 2035",
-    16 -> "Sverige kommer att vinna Eurovision igen före 2035",
-    17 -> "Donald Trump kommer att avsluta sin nuvarande mandatperiod som USA:s president",
-    18 -> "Ryssland kommer att ha samma president år 2030 som idag",
-    19 -> "Taiwan kommer att vara självstyrande även år 2040",
-    20 -> "The Vallkärra Greens kommer sälja huset och flytta till sin stuga när de gått i pension",
+    nextId() -> "Kriget i Ukraina kommer att vara över inom ett år",
+    nextId() -> "Sveriges nuvarande statsministern kommer att behålla makten efter nästa val",
+    nextId() -> "Liberalerna kommer att lämna riksdagen i nästa val",
+    nextId() -> "Ett nybyggt kärnkraftverk kommer att vara i drift i Sverige inom de närmaste 10 åren",
+    nextId() -> "Sverige kommer att införa euron inom 20 år",
+    nextId() -> "Elpriset i Skåne kommer att vara lägre år 2030 än idag",
+    nextId() -> "Försäljningen av bensinbilar kommer att förbjudas i Sverige före 2035",
+    nextId() -> "En svensk region kommer att införa helt avgiftsfri kollektivtrafik permanent före 2035",
+    nextId() -> "Kontanter kommer att användas av mindre än 1 % av svenskarna i vardagen år 2035",
+    nextId() -> "Minst ett svenskt universitet kommer att använda AI som obligatorisk examinator inom 10 år",
+    nextId() -> "Sverige kommer att ha fler registrerade elbilar än bensinbilar före 2035",
+    nextId() -> "Sverige kommer att bygga fler fängelseplatser än studentbostäder under de kommande 10 åren",
+    nextId() -> "TikTok kommer att vara förbjudet i Sverige inom 10 år",
+    nextId() -> "Sverige kommer att ha en kvinnlig statsminister igen före 2035",
+    nextId() -> "Det kommer att finnas självkörande taxibilar i reguljär trafik i någon svensk stad före 2035",
+    nextId() -> "Sverige kommer att vinna Eurovision igen före 2035",
+    nextId() -> "Donald Trump kommer att avsluta sin nuvarande mandatperiod som USA:s president",
+    nextId() -> "Ryssland kommer att ha samma president år 2030 som idag",
+    nextId() -> "Taiwan kommer att vara självstyrande även år 2040",
   )
 
   val questionIds: Vector[Id] =
