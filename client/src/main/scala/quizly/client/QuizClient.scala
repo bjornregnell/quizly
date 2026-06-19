@@ -76,6 +76,15 @@ object QuizClient:
             cls := "danger",
             disabled <-- answersVar.signal.map(_.values.forall(_.isEmpty)),
             onClick.mapTo(()) --> (_ => clearAnswers())
+          ),
+          button(
+            "Show me the code",
+            typ := "button",
+            cls := "code",
+            onClick.mapTo(()) --> { _ =>
+              dom.window.open("https://github.com/bjornregnell/quizly", "_blank")
+              ()
+            }
           )
         )
       ),
