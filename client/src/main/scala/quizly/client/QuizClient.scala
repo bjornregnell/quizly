@@ -64,6 +64,12 @@ object QuizClient:
         ),
         div(
           cls := "actions",
+          child <-- answersVar.signal
+            .map(_.values.forall(_.isDefined))
+            .distinct
+            .map:
+              case true  => assessButton
+              case false => emptyNode,
           button(
             "Danger: Clear all my answers",
             typ := "button",
@@ -90,6 +96,13 @@ object QuizClient:
       child <-- debugVar.signal.map:
         case true  => storedUsersView
         case false => emptyNode
+    )
+
+  def assessButton: HtmlElement =
+    button(
+      "Assess the AI assessment",
+      typ := "button",
+      onClick.mapTo(()) --> (_ => dom.window.location.href = "/quizly/assessment")
     )
 
   def storedUsersView: HtmlElement =
