@@ -60,7 +60,7 @@ This repo also includes a Codex skill at `.agents/skills/quizly-verify`. It shou
 Codex discovers repo skills automatically when started inside the repository. You can also invoke it explicitly:
 
 ```text
-$quizly-verify
+quizly-verify
 ```
 
 To add another repo-scoped skill, create a folder under `.agents/skills/<skill-name>/` with a required `SKILL.md` file containing `name` and `description` frontmatter. Keep repo skills focused on reusable workflows rather than one-off commands.
